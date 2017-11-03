@@ -223,11 +223,16 @@ class COCOResGen2(nn.Module):
     self.decode_B = nn.Sequential(*decB)
 
   def forward(self, x_A, x_B):
-    out = torch.cat((self.encode_A(x_A), self.encode_B(x_B)), 0)
+    _ = self.encode_A(x_A)
+    out = torch.cat((_, self.encode_B(x_B)), 0)
+    
+
     shared = self.enc_shared(out)
     out = self.dec_shared(shared)
     out_A = self.decode_A(out)
     out_B = self.decode_B(out)
+    
+
     x_Aa, x_Ba = torch.split(out_A, x_A.size(0), dim=0)
     x_Ab, x_Bb = torch.split(out_B, x_A.size(0), dim=0)
     return x_Aa, x_Ba, x_Ab, x_Bb, shared
