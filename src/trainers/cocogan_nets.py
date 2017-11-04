@@ -11,10 +11,12 @@ class COCOSharedDis(nn.Module):
     ch = params['ch']
     input_dim_a = params['input_dim_a']
     input_dim_b = params['input_dim_b']
+    input_dim_c = params['input_dim_c']
     n_front_layer = params['n_front_layer']
     n_shared_layer = params['n_shared_layer']
     self.model_A, tch = self._make_front_net(ch, input_dim_a, n_front_layer, n_shared_layer==0)
     self.model_B, tch = self._make_front_net(ch, input_dim_b, n_front_layer, n_shared_layer==0)
+    self.model_C, tch = self._make_front_net(ch, input_dim_c, n_front_layer, n_shared_layer==0)
     self.model_S = self._make_shared_net(tch, n_shared_layer)
 
   def _make_front_net(self, ch, input_dim, n_layer, add_classifier_layer=False):
@@ -42,18 +44,29 @@ class COCOSharedDis(nn.Module):
   def cuda(self,gpu):
     self.model_A.cuda(gpu)
     self.model_B.cuda(gpu)
+    self.model_C.cuda(gpu)
     self.model_S.cuda(gpu)
 
-  def forward(self, x_A, x_B):
-    out_A = self.model_S(self.model_A(x_A))
-    out_A = out_A.view(-1)
+  def forward(self, x_A, x_B, x_C):
     outs_A = []
-    outs_A.append(out_A)
-    out_B = self.model_S(self.model_B(x_B))
-    out_B = out_B.view(-1)
+    for x in x_A:
+      out_A = self.model_S(self.model_A(x))
+      out_A = out_A.view(-1)
+      outs_A.append(out_A)
+
     outs_B = []
-    outs_B.append(out_B)
-    return outs_A, outs_B
+    for x in x_B:
+      out_B = self.model_S(self.model_B(x))
+      out_B = out_B.view(-1)    
+      outs_B.append(out_B)
+  
+    outs_C = []      
+    for x in x_C:
+      out_C = self.model_S(self.model_C(x))
+      out_C = out_C.view(-1)
+      outs_C.append(out_C)
+      
+    return outs_A, outs_B, outs_C
 
 class COCODis(nn.Module):
   def __init__(self, params):
@@ -173,6 +186,7 @@ class COCOResGen2(nn.Module):
     super(COCOResGen2, self).__init__()
     input_dim_a = params['input_dim_a']
     input_dim_b = params['input_dim_b']
+    input_dim_c = params['input_dim_c']
     ch = params['ch']
     n_enc_front_blk  = params['n_enc_front_blk']
     n_enc_res_blk    = params['n_enc_res_blk']
@@ -182,17 +196,21 @@ class COCOResGen2(nn.Module):
     n_gen_front_blk  = params['n_gen_front_blk']
     encA = []
     encB = []
+    encC = []
     # Encoders
     encA += [LeakyReLUConv2d(input_dim_a, ch, kernel_size=7, stride=1, padding=3)]
     encB += [LeakyReLUConv2d(input_dim_b, ch, kernel_size=7, stride=1, padding=3)]
+    encC += [LeakyReLUConv2d(input_dim_c, ch, kernel_size=7, stride=1, padding=3)]
     tch = ch
     for i in range(1,n_enc_front_blk):
       encA += [LeakyReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1)]
       encB += [LeakyReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1)]
+      encC += [LeakyReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1)]
       tch *= 2
     for i in range(0, n_enc_res_blk):
       encA += [INSResBlock(tch, tch)]
       encB += [INSResBlock(tch, tch)]
+      encC += [INSResBlock(tch, tch)]
     # Shared
     enc_shared = []
     for i in range(0, n_enc_shared_blk):
@@ -204,38 +222,48 @@ class COCOResGen2(nn.Module):
     # Decoders
     decA = []
     decB = []
+    decC = []
     for i in range(0, n_gen_res_blk):
       decA += [INSResBlock(tch, tch)]
       decB += [INSResBlock(tch, tch)]
+      decC += [INSResBlock(tch, tch)]
     for i in range(0, n_gen_front_blk-1):
       decA += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=3, stride=2, padding=1, output_padding=1)]
       decB += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=3, stride=2, padding=1, output_padding=1)]
+      decC += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=3, stride=2, padding=1, output_padding=1)]
       tch = tch//2
     decA += [nn.ConvTranspose2d(tch, input_dim_a, kernel_size=1, stride=1, padding=0)]
     decB += [nn.ConvTranspose2d(tch, input_dim_b, kernel_size=1, stride=1, padding=0)]
+    decC += [nn.ConvTranspose2d(tch, input_dim_c, kernel_size=1, stride=1, padding=0)]
     decA += [nn.Tanh()]
     decB += [nn.Tanh()]
+    decC += [nn.Tanh()]
     self.encode_A = nn.Sequential(*encA)
     self.encode_B = nn.Sequential(*encB)
+    self.encode_C = nn.Sequential(*encC)
     self.enc_shared = nn.Sequential(*enc_shared)
     self.dec_shared = nn.Sequential(*dec_shared)
     self.decode_A = nn.Sequential(*decA)
     self.decode_B = nn.Sequential(*decB)
+    self.decode_C = nn.Sequential(*decC)
+
+    self.encoders = {'a': self.encode_A, 'b': self.encode_B, 'c': self.encode_c}
+    self.decoders = {'a': self.decode_A, 'b': self.decode_B, 'c': self.decode_c}
 
   def forward(self, x_A, x_B):
-    _ = self.encode_A(x_A)
-    out = torch.cat((_, self.encode_B(x_B)), 0)
     
+    out = torch.cat((self.encode_A(x_A), self.encode_B(x_B), self.encode_B(x_C)), 0)
 
     shared = self.enc_shared(out)
     out = self.dec_shared(shared)
     out_A = self.decode_A(out)
     out_B = self.decode_B(out)
-    
+    out_C = self.decode_C(out)    
 
-    x_Aa, x_Ba = torch.split(out_A, x_A.size(0), dim=0)
-    x_Ab, x_Bb = torch.split(out_B, x_A.size(0), dim=0)
-    return x_Aa, x_Ba, x_Ab, x_Bb, shared
+    x_Aa, x_Ba, x_Ca = torch.split(out_A, x_A.size(0), dim=0)
+    x_Ab, x_Bb, x_Cb = torch.split(out_B, x_A.size(0), dim=0)
+    x_Ac, x_Bc, x_Cc = torch.split(out_B, x_A.size(0), dim=0)
+    return x_Aa, x_Ba, x_Ca, x_Ab, x_Bb, x_Cb, x_Ac, x_Bc, x_Cc, shared
 
   def forward_a2b(self, x_A):
     out = self.encode_A(x_A)
@@ -249,4 +277,11 @@ class COCOResGen2(nn.Module):
     shared = self.enc_shared(out)
     out = self.dec_shared(shared)
     out = self.decode_A(out)
+    return out, shared
+
+  def forward_x2y(self, x, y, img):
+    out = self.encoders[x](img)
+    shared = self.enc_shared(out)
+    out = self.dec_shared(shared)
+    out = self.decoders[y](out)
     return out, shared
