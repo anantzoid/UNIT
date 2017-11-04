@@ -24,6 +24,7 @@ parser.add_option('--log', type=str, help="log path")
 MAX_EPOCHS = 100000
 
 def main(argv):
+  torch.cuda.set_device(2)
   (opts, args) = parser.parse_args(argv)
 
   # Load experiment setting
@@ -35,7 +36,8 @@ def main(argv):
 
   train_loader_a = get_data_loader(config.datasets['train_a'], batch_size)
   train_loader_b = get_data_loader(config.datasets['train_b'], batch_size)
-  train_loader_c = get_data_loader(config.datasets['train_c'], batch_size)
+  ######### FOR NOW
+  train_loader_c = get_data_loader(config.datasets['train_b'], batch_size)
 
   trainer = []
   exec ("trainer=%s(config.hyperparameters)" % config.hyperparameters['trainer'])

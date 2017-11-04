@@ -39,7 +39,7 @@ class COCOGANTrainer(nn.Module):
     encoding_loss = torch.mean(mu_2)
     return encoding_loss
 
-  def gen_update(self, images_a, images_b, hyperparameters):
+  def gen_update(self, images_a, images_b, images_c, hyperparameters):
     self.gen.zero_grad()
     x_aa, x_ba, x_ab, x_bb, x_ca, x_cb, x_ac, x_bc, x_cc, shared = self.gen(images_a, images_b, images_c)
     x_bab, shared_bab = self.gen.forward_a2b(x_ba)
@@ -48,24 +48,37 @@ class COCOGANTrainer(nn.Module):
     x_cbc, shared_cbc = self.gen.forward_x2y('b', 'c', x_cb)
     x_aca, shared_aca = self.gen.forward_x2y('c', 'a', x_ac)
     x_bcb, shared_bcb = self.gen.forward_x2y('c', 'b', x_bc)
-    
-    outs_a, outs_b, outs_c = self.dis([x_ba, x_ca],[x_ab, x_cb], [x_ac, x_bc])
+   
 
+    data_a = torch.cat((x_ba, x_ca), 0)
+    data_b = torch.cat((x_ab, x_cb), 0)
+    data_c = torch.cat((x_ac, x_bc), 0)
+ 
+    outs_a, outs_b, outs_c = self.dis(data_a, data_b, data_c)
 
     for it, (out_a, out_b, out_c) in enumerate(itertools.izip(outs_a, outs_b, outs_c)):
-      outputs_a = nn.functional.sigmoid(out_a)
-      outputs_b = nn.functional.sigmoid(out_b)
-      outputs_c = nn.functional.sigmoid(out_c)
+      out_a = nn.functional.sigmoid(out_a)
+      out_b = nn.functional.sigmoid(out_b)
+      out_c = nn.functional.sigmoid(out_c)
 
-      all_ones = Variable(torch.ones((outputs_a.size(0))).cuda(self.gpu))
+      out_fake_ba, out_fake_ca = torch.split(out_a, out_a.size(0) // 2, 0)
+      out_fake_ab, out_fake_cb = torch.split(out_b, out_a.size(0) // 2, 0)
+      out_fake_ac, out_fake_bc = torch.split(out_c, out_a.size(0) // 2, 0)
+
+      all_ones = Variable(torch.ones((out_fake_ba.size(0))).cuda(self.gpu))
+
+
       if it==0:
-        ad_loss_a = nn.functional.binary_cross_entropy(outputs_a, all_ones)
-        ad_loss_b = nn.functional.binary_cross_entropy(outputs_b, all_ones)
-        ad_loss_c = nn.functional.binary_cross_entropy(outputs_c, all_ones)        
+        ad_loss_a = nn.functional.binary_cross_entropy(out_fake_ba, all_ones) + nn.functional.binary_cross_entropy(out_fake_ca, all_ones)
+        ad_loss_b = nn.functional.binary_cross_entropy(out_fake_ab, all_ones) + nn.functional.binary_cross_entropy(out_fake_cb, all_ones)
+        ad_loss_c = nn.functional.binary_cross_entropy(out_fake_ac, all_ones) + nn.functional.binary_cross_entropy(out_fake_bc, all_ones)        
       else:
-        ad_loss_a += nn.functional.binary_cross_entropy(outputs_a, all_ones)
-        ad_loss_b += nn.functional.binary_cross_entropy(outputs_b, all_ones)
-        ad_loss_c += nn.functional.binary_cross_entropy(outputs_c, all_ones)
+        ad_loss_a += nn.functional.binary_cross_entropy(out_fake_ba, all_ones) + nn.functional.binary_cross_entropy(out_fake_ca, all_ones)
+        ad_loss_b += nn.functional.binary_cross_entropy(out_fake_ab, all_ones) + nn.functional.binary_cross_entropy(out_fake_cb, all_ones)
+        ad_loss_c += nn.functional.binary_cross_entropy(out_fake_ac, all_ones) + nn.functional.binary_cross_entropy(out_fake_bc, all_ones)        
+        #ad_loss_a += nn.functional.binary_cross_entropy(outputs_a, all_ones)
+        #ad_loss_b += nn.functional.binary_cross_entropy(outputs_b, all_ones)
+        #ad_loss_c += nn.functional.binary_cross_entropy(outputs_c, all_ones)
 
     enc_loss  = self._compute_kl(shared)
     enc_bab_loss = self._compute_kl(shared_bab)
@@ -90,7 +103,7 @@ class COCOGANTrainer(nn.Module):
                  hyperparameters['ll_direct_link_w'] * (ll_loss_a + ll_loss_b + ll_loss_c) + \
                  hyperparameters['ll_cycle_link_w'] * (ll_loss_aba + ll_loss_bab + ll_loss_cac + ll_loss_cbc + ll_loss_aca + ll_loss_bcb) + \
                  hyperparameters['kl_direct_link_w'] * (enc_loss + enc_loss + enc_loss) + \
-                 hyperparameters['kl_cycle_link_w'] * (enc_bab_loss + enc_aba_loss + enc_loss_cac + enc_loss_cbc + enc_loss_aca + enc_loss_bcb)
+                 hyperparameters['kl_cycle_link_w'] * (enc_bab_loss + enc_aba_loss + enc_cac_loss + enc_cbc_loss + enc_aca_loss + enc_bcb_loss)
     total_loss.backward()
     self.gen_opt.step()
     self.gen_enc_loss = enc_loss.data.cpu().numpy()[0]
@@ -111,32 +124,38 @@ class COCOGANTrainer(nn.Module):
 
     self.gen_ll_loss_aba = ll_loss_aba.data.cpu().numpy()[0]
     self.gen_ll_loss_bab = ll_loss_bab.data.cpu().numpy()[0]
-    self.gen_ll_cac_loss = ll_cac_loss.data.cpu().numpy()[0]
-    self.gen_ll_cbc_loss = ll_cbc_loss.data.cpu().numpy()[0]
-    self.gen_ll_aca_loss = ll_aca_loss.data.cpu().numpy()[0]
-    self.gen_ll_bcb_loss = ll_bcb_loss.data.cpu().numpy()[0]
+    self.gen_ll_cac_loss = ll_loss_cac.data.cpu().numpy()[0]
+    self.gen_ll_cbc_loss = ll_loss_cbc.data.cpu().numpy()[0]
+    self.gen_ll_aca_loss = ll_loss_aca.data.cpu().numpy()[0]
+    self.gen_ll_bcb_loss = ll_loss_bcb.data.cpu().numpy()[0]
 
     self.gen_total_loss = total_loss.data.cpu().numpy()[0]
     #return (x_aa, x_ba, x_ab, x_bb, x_aba, x_bab)
     return (x_aa, x_ba, x_ab, x_bb, x_bab, x_aba, x_ca, x_cb, x_ac, x_bc, x_cc, x_cac, x_cbc, x_aca, x_bcb)
 
-  def dis_update(self, images_a, images_b, hyperparameters):
+  def dis_update(self, images_a, images_b, images_c, hyperparameters):
     self.dis.zero_grad()
     #x_aa, x_ba, x_ab, x_bb, shared = self.gen(images_a, images_b)
     x_aa, x_ba, x_ab, x_bb, x_ca, x_cb, x_ac, x_bc, x_cc, shared = self.gen(images_a, images_b, images_c)
+    #print("im_a:", images_a.size())
+    #print("x_ab:", x_ab.size())
+    #print("x_ca:", x_ca.size())
+    #print("=========")
     data_a = torch.cat((images_a, x_ba, x_ca), 0)
     data_b = torch.cat((images_b, x_ab, x_cb), 0)
     data_c = torch.cat((images_c, x_ac, x_bc), 0)
     res_a, res_b, res_c = self.dis(data_a,data_b,data_c)
     # res_true_a, res_true_b = self.dis(images_a,images_b)
     # res_fake_a, res_fake_b = self.dis(x_ba, x_ab)
+    #print(len(res_a))
     for it, (this_a, this_b, this_c) in enumerate(itertools.izip(res_a, res_b, res_c)):
       out_a = nn.functional.sigmoid(this_a)
       out_b = nn.functional.sigmoid(this_b)
       out_c = nn.functional.sigmoid(this_c)
-      out_true_a, out_fake_ba, out_fake_ca = torch.split(out_a, out_a.size(0) // 2, 0)
-      out_true_b, out_fake_ab, out_fake_cb = torch.split(out_b, out_b.size(0) // 2, 0)
-      out_true_c, out_fake_ac, out_fake_bc = torch.split(out_b, out_b.size(0) // 2, 0)
+      #print(out_a)
+      out_true_a, out_fake_ba, out_fake_ca = torch.split(out_a, out_a.size(0) // 3, 0)
+      out_true_b, out_fake_ab, out_fake_cb = torch.split(out_b, out_b.size(0) // 3, 0)
+      out_true_c, out_fake_ac, out_fake_bc = torch.split(out_b, out_b.size(0) // 3, 0)
 
       out_true_n = out_true_a.size(0)
       out_fake_n = out_fake_ba.size(0)
@@ -169,7 +188,7 @@ class COCOGANTrainer(nn.Module):
       fake_c_acc = _compute_fake_acc(out_fake_ac) + _compute_fake_acc(out_fake_bc)
 
       exec( 'self.dis_true_acc_%d = 0.5 * (true_a_acc + true_b_acc + true_c_acc)' %it)
-      exec( 'self.dis_fake_acc_%d = 0.5 * (fake_ba_acc + fake_ca_acc + fake_ab_acc + fake_cb_acc + fake_ac_acc + fake_bc_acc)' %it)
+      exec( 'self.dis_fake_acc_%d = 0.5 * (fake_a_acc + fake_b_acc + fake_c_acc)' %it)
 
     loss = hyperparameters['gan_w'] * ( ad_loss_a + ad_loss_b + ad_loss_c)
     loss.backward()
@@ -177,7 +196,7 @@ class COCOGANTrainer(nn.Module):
     self.dis_loss = loss.data.cpu().numpy()[0]
     return
 
-  def assemble_outputs(self, images_a, images_b, network_outputs):
+  def assemble_outputs(self, images_a, images_b, images_c, network_outputs):
     images_a = self.normalize_image(images_a)
     images_b = self.normalize_image(images_b)
     images_c = self.normalize_image(images_c)
