@@ -45,7 +45,7 @@ def main(argv):
 
   ######################################################################################################################
   # Setup logger and repare image outputs
-  train_writer = tensorboard.FileWriter("%s/%s" % (opts.log,os.path.splitext(os.path.basename(opts.config))[0]))
+  #train_writer = tensorboard.FileWriter("%s/%s" % (opts.log,os.path.splitext(os.path.basename(opts.config))[0]))
   image_directory, snapshot_directory = prepare_snapshot_and_image_folder(config.snapshot_prefix, iterations, config.image_save_iterations)
 
   for ep in range(0, MAX_EPOCHS):
@@ -61,8 +61,8 @@ def main(argv):
       assembled_images = trainer.assemble_outputs(images_a, images_b, image_outputs)
 
       # Dump training stats in log file
-      if (iterations+1) % config.display == 0:
-        write_loss(iterations, max_iterations, trainer, train_writer)
+      #if (iterations+1) % config.display == 0:
+      #  write_loss(iterations, max_iterations, trainer, train_writer)
 
       if (iterations+1) % config.image_save_iterations == 0:
         img_filename = '%s/gen_%08d.jpg' % (image_directory, iterations + 1)
