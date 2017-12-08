@@ -46,7 +46,6 @@ class COCOSharedDis(nn.Module):
 
   def forward(self, x_A, x_B):
     out_A = self.model_S(self.model_A(x_A))
-    print(out_A.size())
     out_A = out_A.view(-1)
     outs_A = []
     outs_A.append(out_A)

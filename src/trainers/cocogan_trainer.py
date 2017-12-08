@@ -93,9 +93,7 @@ class COCOGANTrainer(nn.Module):
     for it, (this_a, this_b) in enumerate(itertools.izip(res_a, res_b)):
       out_a = nn.functional.sigmoid(this_a)
       out_b = nn.functional.sigmoid(this_b)
-      print("spliit", out_a.size())
       out_true_a, out_fake_a = torch.split(out_a, out_a.size(0) // 2, 0)
-      print("spliit22", out_true_a.size(), out_fake_a.size())
       out_true_b, out_fake_b = torch.split(out_b, out_b.size(0) // 2, 0)
       out_true_n = out_true_a.size(0)
       out_fake_n = out_fake_a.size(0)

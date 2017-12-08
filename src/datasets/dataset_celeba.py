@@ -20,13 +20,7 @@ class dataset_celeba(data.Dataset):
     list_fullpath = os.path.join(self.root, self.list_name)
     with open(list_fullpath) as f:
       content = f.readlines()
-    self.images = []#os.path.join(self.root, self.folder, x.strip().split(' ')[0]) for x in content[:2]]
-    for x in content:
-      _path = os.path.join(self.root, self.folder, x.strip().split(' ')[0])
-      if os.path.exists(_path):
-        self.images.append(_path) 
-      if(len(self.images) > 5):
-        break
+    self.images = [os.path.join(self.root, self.folder, x.strip().split(' ')[0]) for x in content]
     np.random.shuffle(self.images)
     self.dataset_size = len(self.images)
 
