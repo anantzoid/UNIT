@@ -5,7 +5,7 @@ train:
   image_save_iterations: 2500 # How often do you want to save output images during training
   image_display_iterations: 100
   display: 100 # How often do you want to log the training stats
-  snapshot_prefix: /misc/vlgscratch2/LecunGroup/anant/unit/exps/blond_black # Where do you want to save the outputs
+  snapshot_prefix: /misc/vlgscratch2/LecunGroup/anant/unit/exps/celeba/blond_black/blond_black
   hyperparameters:
     trainer: COCOGANTrainer
     lr: 0.0001             # learning rate
