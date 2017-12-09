@@ -47,6 +47,7 @@ def main(argv):
   # Setup logger and repare image outputs
   train_writer = tensorboard.FileWriter("%s/%s" % (opts.log,os.path.splitext(os.path.basename(opts.config))[0]))
   image_directory, snapshot_directory = prepare_snapshot_and_image_folder(config.snapshot_prefix, iterations, config.image_save_iterations)
+  print("snapshot dir: %s \n image dir: %s"%(image_directory, snapshot_directory))
 
   for ep in range(0, MAX_EPOCHS):
     for it, (images_a, images_b) in enumerate(itertools.izip(train_loader_a,train_loader_b)):
