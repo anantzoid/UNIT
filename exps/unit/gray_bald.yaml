@@ -5,7 +5,7 @@ train:
   image_save_iterations: 2500 # How often do you want to save output images during training
   image_display_iterations: 100
   display: 100 # How often do you want to log the training stats
-  snapshot_prefix: /misc/vlgscratch2/LecunGroup/anant/unit/exps/celeba/blond_black/blond_black
+  snapshot_prefix: /misc/vlgscratch2/LecunGroup/anant/unit/exps/celeba/gray_bald/gray_bald # Where do you want to save the outputs
   hyperparameters:
     trainer: COCOGANTrainer
     lr: 0.0001             # learning rate
@@ -40,8 +40,9 @@ train:
       scale: 1.0        # scaling factor for scaling image before processing
       crop_image_size: 128 # crop image size
       class_name: dataset_celeba           # dataset class name
+      root: /misc/vlgscratch2/LecunGroup/anant/unit/datasets/celeba/    # dataset folder location
       folder: img_align_128/
-      list_name: lists/anant_blond.txt
+      list_name: lists/anant_gray.txt
     train_b: # Domain 2 dataset
       channels: 3       # image channel number
       scale: 1.0        # scaling factor for scaling image before processing
@@ -49,4 +50,4 @@ train:
       class_name: dataset_celeba           # dataset class name
       root: /misc/vlgscratch2/LecunGroup/anant/unit/datasets/celeba/    # dataset folder location
       folder: img_align_128/
-      list_name: lists/anant_black.txt
+      list_name: lists/anant_bald.txt
