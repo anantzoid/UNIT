@@ -41,7 +41,7 @@ train:
       crop_image_size: 128 # crop image size
       class_name: dataset_celeba           # dataset class name
       root: /misc/vlgscratch2/LecunGroup/anant/unit/datasets/celeba/    # dataset folder location
-      folder: img_align_crop_resize_celeba/
+      folder: img_align_128/
       list_name: lists/anant_blond.txt
     train_b: # Domain 2 dataset
       channels: 3       # image channel number
@@ -49,5 +49,5 @@ train:
       crop_image_size: 128 # crop image size
       class_name: dataset_celeba           # dataset class name
       root: /misc/vlgscratch2/LecunGroup/anant/unit/datasets/celeba/    # dataset folder location
-      folder: img_align_crop_resize_celeba/
+      folder: img_align_128/
       list_name: lists/anant_black.txt
