@@ -19,6 +19,7 @@ import progress_bar
 from tools import *
 from common import get_data_loader
 from classifier_models import *
+from focal_loss import FocalLoss
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
@@ -72,7 +73,8 @@ if use_cuda:
     #net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
     cudnn.benchmark = True
 
-criterion = nn.CrossEntropyLoss()
+#criterion = nn.CrossEntropyLoss()
+criterion = FocalLoss() 
 optimizer = optim.Adam(net.parameters(), lr=args.lr, betas=(0.5, 0.999), weight_decay=1e-6)
 
 def train(epoch):
