@@ -20,6 +20,7 @@ from tools import *
 from common import get_data_loader
 from classifier_models import *
 from focal_loss import FocalLoss
+from sklearn.metrics import f1_score
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
@@ -37,7 +38,7 @@ exp_path = os.path.join(base_path, args.exp_version)
 ckpt_path = os.path.join(exp_path, 'checkpoint')
 log_path = os.path.join(exp_path, 'logs')
 print("Experiment Name: {}".format(args.exp_version))
-
+print(ckpt_path)
 for path in [base_path, exp_path, data_path, base_path, ckpt_path, log_path]:
     if not os.path.exists(path):
         os.makedirs(path)
@@ -58,8 +59,8 @@ testloader = get_data_loader(config.datasets['valdata'], args.batch_size)
 if args.resume:
     # Load checkpoint.
     print('==> Resuming from checkpoint..')
-    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
-    checkpoint = torch.load('./checkpoint/ckpt.t7')
+    #assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
+    checkpoint = torch.load('%s/ckpt.t7'%ckpt_path)
     net = checkpoint['net']
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']
@@ -74,7 +75,7 @@ if use_cuda:
     cudnn.benchmark = True
 
 #criterion = nn.CrossEntropyLoss()
-criterion = FocalLoss() 
+criterion = FocalLoss(4, use_cuda)
 optimizer = optim.Adam(net.parameters(), lr=args.lr, betas=(0.5, 0.999), weight_decay=1e-6)
 
 def train(epoch):
@@ -111,13 +112,14 @@ def train(epoch):
 
 def test(epoch):
     global best_acc
+    f1 = 0
     net.eval()
     test_loss = 0
     correct = 0
     total = 0
     for batch_idx, (inputs, targets) in enumerate(testloader):
-        #if batch_idx > 10:
-        #    break
+        if batch_idx > 10:
+            break
         if use_cuda:
             inputs, targets = inputs.cuda(), targets.cuda()
         inputs, targets = Variable(inputs, volatile=True), Variable(targets)
@@ -128,7 +130,7 @@ def test(epoch):
         _, predicted = torch.max(outputs.data, 1)
         total += targets.size(0)
         correct += predicted.eq(targets.data).cpu().sum()
-
+        f1 += f1_score(predicted.cpu().numpy(), targets.data.cpu().numpy(), average='micro')
     print(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
         % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
@@ -148,6 +150,8 @@ def test(epoch):
     tensorboard_logger.log_value('test_loss', test_loss/(batch_idx+1), epoch)
     tensorboard_logger.log_value('test_accuracy', 100.*correct/total, epoch)
     print(predicted[:10].cpu().numpy())
+
+
 
 
 for epoch in range(start_epoch, start_epoch+200):
