@@ -27,6 +27,8 @@ class COCOGANTrainer(nn.Module):
     # Setup the loss function for training
     self.ll_loss_criterion_a = torch.nn.L1Loss()
     self.ll_loss_criterion_b = torch.nn.L1Loss()
+    #print(self.dis)
+    #print(self.gen)
 
 
   def _compute_kl(self, mu):
@@ -45,7 +47,7 @@ class COCOGANTrainer(nn.Module):
     x_bab, shared_bab = self.gen.forward_a2b(x_ba)
     x_aba, shared_aba = self.gen.forward_b2a(x_ab)
     outs_a, outs_b = self.dis(x_ba,x_ab)
-    for it, (out_a, out_b) in enumerate(itertools.izip(outs_a, outs_b)):
+    for it, (out_a, out_b) in enumerate(zip(outs_a, outs_b)):
       outputs_a = nn.functional.sigmoid(out_a)
       outputs_b = nn.functional.sigmoid(out_b)
       all_ones = Variable(torch.ones((outputs_a.size(0))).cuda(self.gpu))
@@ -70,16 +72,17 @@ class COCOGANTrainer(nn.Module):
                  hyperparameters['kl_cycle_link_w'] * (enc_bab_loss + enc_aba_loss)
     total_loss.backward()
     self.gen_opt.step()
-    self.gen_enc_loss = enc_loss.data.cpu().numpy()[0]
-    self.gen_enc_bab_loss = enc_bab_loss.data.cpu().numpy()[0]
-    self.gen_enc_aba_loss = enc_aba_loss.data.cpu().numpy()[0]
-    self.gen_ad_loss_a = ad_loss_a.data.cpu().numpy()[0]
-    self.gen_ad_loss_b = ad_loss_b.data.cpu().numpy()[0]
-    self.gen_ll_loss_a = ll_loss_a.data.cpu().numpy()[0]
-    self.gen_ll_loss_b = ll_loss_b.data.cpu().numpy()[0]
-    self.gen_ll_loss_aba = ll_loss_aba.data.cpu().numpy()[0]
-    self.gen_ll_loss_bab = ll_loss_bab.data.cpu().numpy()[0]
-    self.gen_total_loss = total_loss.data.cpu().numpy()[0]
+    
+    self.gen_enc_loss = enc_loss.item()#.cpu().numpy()[0]
+    self.gen_enc_bab_loss = enc_bab_loss.item()#.cpu().numpy()[0]
+    self.gen_enc_aba_loss = enc_aba_loss.item()#.cpu().numpy()[0]
+    self.gen_ad_loss_a = ad_loss_a.item()#.cpu().numpy()[0]
+    self.gen_ad_loss_b = ad_loss_b.item()#.cpu().numpy()[0]
+    self.gen_ll_loss_a = ll_loss_a.item()#.cpu().numpy()[0]
+    self.gen_ll_loss_b = ll_loss_b.item()#.cpu().numpy()[0]
+    self.gen_ll_loss_aba = ll_loss_aba.item()#.cpu().numpy()[0]
+    self.gen_ll_loss_bab = ll_loss_bab.item()#.cpu().numpy()[0]
+    self.gen_total_loss = total_loss.item()#.cpu().numpy()[0]
     return (x_aa, x_ba, x_ab, x_bb, x_aba, x_bab)
 
   def dis_update(self, images_a, images_b, hyperparameters):
@@ -90,7 +93,7 @@ class COCOGANTrainer(nn.Module):
     res_a, res_b = self.dis(data_a,data_b)
     # res_true_a, res_true_b = self.dis(images_a,images_b)
     # res_fake_a, res_fake_b = self.dis(x_ba, x_ab)
-    for it, (this_a, this_b) in enumerate(itertools.izip(res_a, res_b)):
+    for it, (this_a, this_b) in enumerate(zip(res_a, res_b)):
       out_a = nn.functional.sigmoid(this_a)
       out_b = nn.functional.sigmoid(this_b)
       out_true_a, out_fake_a = torch.split(out_a, out_a.size(0) // 2, 0)
@@ -118,7 +121,7 @@ class COCOGANTrainer(nn.Module):
     loss = hyperparameters['gan_w'] * ( ad_loss_a + ad_loss_b )
     loss.backward()
     self.dis_opt.step()
-    self.dis_loss = loss.data.cpu().numpy()[0]
+    self.dis_loss = loss.data.cpu().numpy()
     return
 
   def assemble_outputs(self, images_a, images_b, network_outputs):
