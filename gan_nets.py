@@ -1,10 +1,10 @@
 
-from .common_net import *
+from common_net import *
 
 class COCOSharedDis(nn.Module):
   def __init__(self, input_dim_a, input_dim_b, params):
     super(COCOSharedDis, self).__init__()
-    ch = params['ch']
+    ch = params['dim']
     input_dim_a = input_dim_a
     input_dim_b = input_dim_b
     n_front_layer = params['n_front_layer']
@@ -57,7 +57,7 @@ class COCOResGen2(nn.Module):
     super(COCOResGen2, self).__init__()
     input_dim_a = input_dim_a
     input_dim_b = input_dim_b
-    ch = params['ch']
+    ch = params['dim']
     n_enc_front_blk  = params['n_enc_front_blk']
     n_enc_res_blk    = params['n_enc_res_blk']
     n_enc_shared_blk = params['n_enc_shared_blk']
