@@ -206,8 +206,13 @@ def get_slerp_interp(nb_latents, nb_interp, z_dim):
 def get_model_list(dirname, key):
     if os.path.exists(dirname) is False:
         return None
+    #gen_models = []
+    #for f in os.listdir(dirname):
+    #  if os.path.isfile(os.path.join(dirname, f)) and key in f and ".pkl" in f:
+    #    gen_models.append(os.path.join(dirname, f))
     gen_models = [os.path.join(dirname, f) for f in os.listdir(dirname) if
-                  os.path.isfile(os.path.join(dirname, f)) and key in f and ".pt" in f]
+                  os.path.isfile(os.path.join(dirname, f)) and key in f and ".pkl" in f]
+    
     if gen_models is None:
         return None
     gen_models.sort()

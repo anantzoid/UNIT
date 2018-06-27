@@ -275,36 +275,61 @@ class UNIT_Trainer(nn.Module):
         if self.gen_scheduler is not None:
             self.gen_scheduler.step()
 
-    def resume(self, checkpoint_dir, hyperparameters):
-        # Load generators
-        last_model_name = get_model_list(checkpoint_dir, "gen")
-        state_dict = torch.load(last_model_name)
-        self.gen_a.load_state_dict(state_dict['a'])
-        self.gen_b.load_state_dict(state_dict['b'])
-        iterations = int(last_model_name[-11:-3])
-        # Load discriminators
-        last_model_name = get_model_list(checkpoint_dir, "dis")
-        state_dict = torch.load(last_model_name)
-        self.dis_a.load_state_dict(state_dict['a'])
-        self.dis_b.load_state_dict(state_dict['b'])
+    def resume(self, snapshot_prefix, hyperparameters):
+        dirname = snapshot_prefix#os.path.dirname(snapshot_prefix)
+        last_model_name = get_model_list(dirname,"gen")
+        if last_model_name is None:
+          return 0
+        self.gen.load_state_dict(torch.load(last_model_name))
+        iterations = int(last_model_name[-12:-4])
+        last_model_name = get_model_list(dirname, "dis")
+        self.dis.load_state_dict(torch.load(last_model_name))
         # Load optimizers
-        state_dict = torch.load(os.path.join(checkpoint_dir, 'optimizer.pt'))
+        state_dict = torch.load(os.path.join(snapshot_prefix, 'optimizer.pt'))
         self.dis_opt.load_state_dict(state_dict['dis'])
         self.gen_opt.load_state_dict(state_dict['gen'])
         # Reinitilize schedulers
+        # NOTE Temp workaround fix from torch/optim/lr_scheduler.py
+        for group in self.dis_opt.param_groups:
+          group.setdefault('initial_lr', group['lr'])
+        for group in self.gen_opt.param_groups:
+          group.setdefault('initial_lr', group['lr'])
+
         self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters, iterations)
         self.gen_scheduler = get_scheduler(self.gen_opt, hyperparameters, iterations)
         print('Resume from iteration %d' % iterations)
         return iterations
 
+    # def resume(self, checkpoint_dir, hyperparameters):
+    #     # Load generators
+    #     last_model_name = get_model_list(checkpoint_dir, "gen")
+    #     state_dict = torch.load(last_model_name)
+    #     self.gen_a.load_state_dict(state_dict['a'])
+    #     self.gen_b.load_state_dict(state_dict['b'])
+    #     iterations = int(last_model_name[-11:-3])
+    #     # Load discriminators
+    #     last_model_name = get_model_list(checkpoint_dir, "dis")
+    #     state_dict = torch.load(last_model_name)
+    #     self.dis_a.load_state_dict(state_dict['a'])
+    #     self.dis_b.load_state_dict(state_dict['b'])
+    #     # Load optimizers
+    #     state_dict = torch.load(os.path.join(checkpoint_dir, 'optimizer.pt'))
+    #     self.dis_opt.load_state_dict(state_dict['dis'])
+    #     self.gen_opt.load_state_dict(state_dict['gen'])
+    #     # Reinitilize schedulers
+    #     self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters, iterations)
+    #     self.gen_scheduler = get_scheduler(self.gen_opt, hyperparameters, iterations)
+    #     print('Resume from iteration %d' % iterations)
+    #     return iterations
+
     def save(self, snapshot_prefix, iterations):
-				gen_filename = os.path.join(snapshot_prefix, 'gen_%08d.pkl' % (iterations + 1))
-				dis_filename = os.path.join(snapshot_prefix, 'dis_%08d.pkl' % (iterations + 1))
-			
-				opt_name = os.path.join(snapshot_prefix, 'optimizer.pt')
-				torch.save(self.gen.state_dict(), gen_filename)
-				torch.save(self.dis.state_dict(), dis_filename)
-				torch.save({'gen': self.gen_opt.state_dict(), 'dis': self.dis_opt.state_dict()}, opt_name)
+        gen_filename = os.path.join(snapshot_prefix, 'gen_%08d.pkl' % (iterations + 1))
+        dis_filename = os.path.join(snapshot_prefix, 'dis_%08d.pkl' % (iterations + 1))
+      
+        opt_name = os.path.join(snapshot_prefix, 'optimizer.pt')
+        torch.save(self.gen.state_dict(), gen_filename)
+        torch.save(self.dis.state_dict(), dis_filename)
+        torch.save({'gen': self.gen_opt.state_dict(), 'dis': self.dis_opt.state_dict()}, opt_name)
 
     def normalize_image(self, x):
       return x[:,0:3,:,:]
