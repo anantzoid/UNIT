@@ -30,6 +30,8 @@ class UNIT_Trainer(nn.Module):
         self.ll_loss_criterion_a = torch.nn.L1Loss()
         self.ll_loss_criterion_b = torch.nn.L1Loss()
 
+        self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters)
+        self.gen_scheduler = get_scheduler(self.gen_opt, hyperparameters)
 
         # self.gen_a = VAEGen(hyperparameters['input_dim_a'], hyperparameters['gen'])  # auto-encoder for domain a
         # self.gen_b = VAEGen(hyperparameters['input_dim_b'], hyperparameters['gen'])  # auto-encoder for domain b

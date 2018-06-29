@@ -5,8 +5,11 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 import torch.utils.data as data
 import os.path
 
-def default_loader(path):
-    return Image.open(path).convert('RGB')
+def default_loader(path, grayscale=False):
+    if grayscale:
+      return Image.open(path)
+    else:
+      return Image.open(path).convert('RGB')
 
 
 def default_flist_reader(flist):
@@ -101,7 +104,7 @@ def make_dataset(dir):
 
 class ImageFolder(data.Dataset):
 
-    def __init__(self, root, transform=None, return_paths=False,
+    def __init__(self, root, transform=None, test=False,
                  loader=default_loader):
         imgs = sorted(make_dataset(root))
         if len(imgs) == 0:
@@ -112,16 +115,17 @@ class ImageFolder(data.Dataset):
         self.root = root
         self.imgs = imgs
         self.transform = transform
-        self.return_paths = return_paths
+        self.test = test
         self.loader = loader
 
     def __getitem__(self, index):
         path = self.imgs[index]
         img = self.loader(path)
+        imgshape = img.size
         if self.transform is not None:
             img = self.transform(img)
-        if self.return_paths:
-            return img, path
+        if self.test:
+            return img, path, imgshape
         else:
             return img
 
