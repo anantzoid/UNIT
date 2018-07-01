@@ -9,5 +9,7 @@
 # with only crops
 #python train.py --config configs/0624humerus.yaml --output_path /data2/unit --gpu 1
 
-python eval.py --config configs/0628test.yaml --patch_metadata /data2/generative/0629test/gendata_metadata.json --model_path /data2/unit/outputs/lesion/checkpoints/gen_00056000.pkl --data_root /data2/generative/0629test
+python eval.py --config configs/0628test.yaml --patch_metadata /data2/generative/0629test/gendata_metadata.json --model_path /data2/unit/outputs/lesion/checkpoints/gen_00056000.pkl
+
+#0701
 

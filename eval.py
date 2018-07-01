@@ -17,12 +17,10 @@ import os
 import sys
 import json
 
-from data import default_loader
 import numpy as np
 from skimage import transform
+from PIL import Image
 
-import scipy.misc
-#exit()
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, help="gpu id", default=0)
 parser.add_argument('--config', type=str, default='configs/edges2handbags_folder', help='Path to the config file.')
@@ -41,7 +39,7 @@ torch.cuda.set_device(opts.gpu)
 # Load experiment setting
 config = get_config(opts.config)
 patch_metadata = json.load(open(opts.patch_metadata)) 
-config['data_root'] = opts.data_root
+#config['data_root'] = opts.data_root
 
 # Setup model and data loader
 trainer = UNIT_Trainer(config)
@@ -52,16 +50,16 @@ trainer.gen.eval()
 test_loader_b = get_test_data_loaders(config)
 # Setup logger and output folders
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
-output_directory = os.path.join(opts.output_path + "/eval_gens", "%s_%s"%(model_name, opts.model_path.split("/")[-1].split(".")[0].split("_")[-1]))
+output_directory = os.path.join(opts.output_path + "/evaluation_unit", "%s_%s"%(model_name, opts.model_path.split("/")[-1].split(".")[0].split("_")[-1]))
 print("output dir:", output_directory)
 
 if not os.path.exists(output_directory):
   os.makedirs(output_directory)
 
-if opts.debug:
-  debug_savedir = os.path.join(output_directory, "debug")
-  if not os.path.exists(debug_savedir):
-    os.makedirs(debug_savedir)
+for d in ['gen', 'original', 'debug']:
+  d = os.path.join(output_directory, d)
+  if not os.path.exists(d):
+    os.makedirs(d)
 
 def np_norm_im(img):
   min, max = float(np.min(img)), float(np.max(img))
@@ -80,9 +78,16 @@ def resize_image_by_crop(im, coords):
       }
   return transform.resize(im, (new_h, new_w)), new_coords
 
-def patch_convert(image_output):
-  image_output = image_output.data.cpu()
-  image_output = image_output[0,0,:,:].numpy()
+def im_trans(image_output):
+  try:
+    image_output = image_output.data
+  except:
+    pass
+  try:
+    image_output = image_output.cpu()
+  except:
+    pass
+  image_output = np.mean(image_output[0].numpy(), 0)
   image_output = np_norm_im(image_output)#, minmax[0], minmax[1])
   return image_output
 
@@ -94,32 +99,40 @@ for it, images_b in enumerate(test_loader_b):
   image_name = image_path[0].split("/")[-1]
   
   dicomId = image_name.split(".")[0]
-  image_name_original = "%s.png"%dicomId
-  orig_image = np.array(default_loader(os.path.join(config['img_dir'], image_name_original), True))
+  image_name_original = "%s.png"%dicomId.split("_")[0]
+  # NOTE PIL reader leads to a contrast difference. pyplot seems to work fine.
+  #orig_image = np.array(default_loader(os.path.join(config['img_dir'], image_name_original), True))
+  orig_image = plt.imread(os.path.join(config['img_dir'], image_name_original))
 
   if "_" not in dicomId:
     dicomId = "%s_0"%dicomId
   coords = patch_metadata[dicomId]['patch']
  
   resized_image, coords = resize_image_by_crop(orig_image, coords) 
+  
+  image_output_ = im_trans(image_output)
+  images_b_ = im_trans(images_b)
   resized_image = np_norm_im(resized_image)
-  gen_image = np.copy(resized_image)
-  image_output = patch_convert(image_output)
-  gen_image[coords['sy']:coords['ey'], coords['sx']: coords['ex']] = image_output
 
-  ## SAVE image
-  #normalize scales of image
-  img_filename = os.path.join(output_directory, image_name)
-  scipy.imsave(img_filename, gen_image)
+  # Temporary skip over a bug that arises from miscalcualted coordinates
+  try:
+    gen_image = np.copy(resized_image)
+    gen_image[coords['sy']:coords['ey'], coords['sx']: coords['ex']] = image_output_
+  except:
+    print(coords)
+    print(gen_image.shape)
+    continue
+  gen_image = np.clip(gen_image * 255, 0, 255).astype('uint8')
+  im = Image.fromarray(gen_image)
+  im.save(os.path.join(output_directory, 'gen', image_name))
+
+  gen_image = np.copy(resized_image)
+  gen_image[coords['sy']:coords['ey'], coords['sx']: coords['ex']] = images_b_
+  gen_image = np.clip(gen_image * 255, 0, 255).astype('uint8')
+  im = Image.fromarray(gen_image)
+  im.save(os.path.join(output_directory, 'original', image_name))
 
   if opts.debug:
-    dicomId = image_name.split(".")[0]
-    image_name_original = "%s.png"%dicomId
-    orig_image = np.array(default_loader(os.path.join(config['img_dir'], image_name_original), True))
-    if "_" not in dicomId:
-      dicomId = "%s_0"%dicomId
-    coords = patch_metadata[dicomId]['patch']
-
     # Save original images with patches drawn over it (debug mode)
     fig, axs = plt.subplots(1)
     axs.imshow(orig_image, cmap='gray')
@@ -130,7 +143,9 @@ for it, images_b in enumerate(test_loader_b):
     axs.add_patch(matplotlib.patches.Rectangle((ll_x, ll_y), w, h, linewidth=1, edgecolor='r',
                     facecolor='none'))
 
-    plt.savefig(os.path.join(debug_savedir, image_name_original))
+    plt.savefig(os.path.join(output_directory, 'debug', image_name_original))
     plt.close()
 
-
+  
+  if it == 20:
+    break
