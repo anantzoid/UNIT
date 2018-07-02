@@ -26,7 +26,6 @@ parser.add_argument('--gpu', type=int, help="gpu id", default=0)
 parser.add_argument('--config', type=str, default='configs/edges2handbags_folder', help='Path to the config file.')
 parser.add_argument('--output_path', type=str, default='/data2/unit', help="outputs path")
 parser.add_argument('--model_path', type=str, default='', help="model path")
-parser.add_argument('--patch_metadata', type=str, default='', help="")
 
 parser.add_argument('--debug', action="store_true")
 opts = parser.parse_args()
@@ -38,7 +37,7 @@ torch.cuda.set_device(opts.gpu)
 
 # Load experiment setting
 config = get_config(opts.config)
-patch_metadata = json.load(open(opts.patch_metadata)) 
+patch_metadata = json.load(open(os.path.join(config['data_root'], 'gendata_metadata.json'))) 
 #config['data_root'] = opts.data_root
 
 # Setup model and data loader
@@ -67,7 +66,8 @@ def np_norm_im(img):
   img = (img - min) / (max - min + 1e-5)
   return img
 
-def resize_image_by_crop(im, coords):
+def resize_image_by_crop(im, coords, target_size):
+  im = transform.resize(im, target_size)
   w, h = coords['ex'] - coords['sx'], coords['ey'] - coords['sy']
   new_w, new_h = int((256 * im.shape[1]) / w), int((256 * im.shape[0]) / h)
   new_coords = {
@@ -107,8 +107,9 @@ for it, images_b in enumerate(test_loader_b):
   if "_" not in dicomId:
     dicomId = "%s_0"%dicomId
   coords = patch_metadata[dicomId]['patch']
+  target_size = patch_metadata[dicomId]['target_size']
  
-  resized_image, coords = resize_image_by_crop(orig_image, coords) 
+  resized_image, coords = resize_image_by_crop(orig_image, coords, target_size) 
   
   image_output_ = im_trans(image_output)
   images_b_ = im_trans(images_b)
@@ -118,7 +119,8 @@ for it, images_b in enumerate(test_loader_b):
   try:
     gen_image = np.copy(resized_image)
     gen_image[coords['sy']:coords['ey'], coords['sx']: coords['ex']] = image_output_
-  except:
+  except Exception as e:
+    print(str(e))
     print(coords)
     print(gen_image.shape)
     continue
@@ -147,5 +149,5 @@ for it, images_b in enumerate(test_loader_b):
     plt.close()
 
   
-  if it == 20:
+  if it >= 50:
     break
