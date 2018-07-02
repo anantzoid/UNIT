@@ -81,16 +81,26 @@ class Bias2d(nn.Module):
 # Residual Blocks
 ##################################################################################
 class INSResBlock(nn.Module):
-  def conv3x3(self, inplanes, out_planes, stride=1):
-    return nn.Conv2d(inplanes, out_planes, kernel_size=3, stride=stride, padding=1)
+  def conv3x3(self, inplanes, out_planes, stride=1, padding=1):
+    return nn.Conv2d(inplanes, out_planes, kernel_size=3, stride=stride, padding=padding)
 
-  def __init__(self, inplanes, planes, stride=1, dropout=0.0):
+  def __init__(self, inplanes, planes, stride=1, dropout=0.0, pad_type='zero'):
     super(INSResBlock, self).__init__()
     model = []
-    model += [self.conv3x3(inplanes, planes, stride)]
+    if pad_type == 'reflect':
+      model += [nn.ReflectionPad2d(1)]
+      padding = 0
+    else:
+      padding = 1
+    model += [self.conv3x3(inplanes, planes, stride, padding)]
     model += [nn.InstanceNorm2d(planes)]
     model += [nn.ReLU(inplace=True)]
-    model += [self.conv3x3(planes, planes)]
+    if pad_type == 'reflect':
+      model += [nn.ReflectionPad2d(1)]
+      padding = 0
+    else:
+      padding = 1
+    model += [self.conv3x3(planes, planes, padding=padding)]
     model += [nn.InstanceNorm2d(planes)]
     if dropout > 0:
       model += [nn.Dropout(p=dropout)]
@@ -106,10 +116,28 @@ class INSResBlock(nn.Module):
 ##################################################################################
 # Leaky ReLU-based conv layers
 ##################################################################################
+class ReLUConv2d(nn.Module):
+  def __init__(self, n_in, n_out, kernel_size, stride, padding=0, pad_type='zero'):
+    super(ReLUConv2d, self).__init__()
+    model = []
+    if pad_type == 'reflect':
+      model += [nn.ReflectionPad2d(padding)]
+      padding = 0
+    model += [nn.Conv2d(n_in, n_out, kernel_size=kernel_size, stride=stride, padding=padding, bias=True)]
+    model += [nn.ReLU(inplace=True)]
+    self.model = nn.Sequential(*model)
+    self.model.apply(gaussian_weights_init)
+
+  def forward(self, x):
+    return self.model(x)
+
 class LeakyReLUConv2d(nn.Module):
-  def __init__(self, n_in, n_out, kernel_size, stride, padding=0):
+  def __init__(self, n_in, n_out, kernel_size, stride, padding=0, pad_type='zero'):
     super(LeakyReLUConv2d, self).__init__()
     model = []
+    if pad_type == 'reflect':
+      model += [nn.ReflectionPad2d(padding)]
+      padding = 0
     model += [nn.Conv2d(n_in, n_out, kernel_size=kernel_size, stride=stride, padding=padding, bias=True)]
     model += [nn.LeakyReLU(inplace=True)]
     self.model = nn.Sequential(*model)

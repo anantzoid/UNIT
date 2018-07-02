@@ -9,16 +9,17 @@ class COCOSharedDis(nn.Module):
     input_dim_b = input_dim_b
     n_front_layer = params['n_front_layer']
     n_shared_layer = params['n_shared_layer']
+    self.pad_type = params['pad_type']
     self.model_A, tch = self._make_front_net(ch, input_dim_a, n_front_layer, n_shared_layer==0)
     self.model_B, tch = self._make_front_net(ch, input_dim_b, n_front_layer, n_shared_layer==0)
     self.model_S = self._make_shared_net(tch, n_shared_layer)
 
   def _make_front_net(self, ch, input_dim, n_layer, add_classifier_layer=False):
     model = []
-    model += [LeakyReLUConv2d(input_dim, ch, kernel_size=7, stride=2, padding=3)] #16
+    model += [LeakyReLUConv2d(input_dim, ch, kernel_size=7, stride=2, padding=3, pad_type=self.pad_type)] #16
     tch = ch
     for i in range(1, n_layer):
-      model += [LeakyReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1)] # 8
+      model += [LeakyReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1, pad_type=self.pad_type)] # 8
       tch *= 2
     if add_classifier_layer:
       model += [nn.Conv2d(tch, 1, kernel_size=1, stride=1, padding=0)]  # 1
@@ -30,7 +31,7 @@ class COCOSharedDis(nn.Module):
       return nn.Sequential(*model)
     tch = ch
     for i in range(0, n_layer):
-      model += [LeakyReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1)] # 8
+      model += [LeakyReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1, pad_type=self.pad_type)] # 8
       tch *= 2
     model += [nn.Conv2d(tch, 1, kernel_size=1, stride=1, padding=0)]  # 1
     return nn.Sequential(*model)
@@ -69,22 +70,34 @@ class COCOResGen2(nn.Module):
     else:
       res_dropout_ratio = 0
 
+    activation_type = params['activation_type']
+    pad_type = params['pad_type']
+
     ##############################################################################
     # BEGIN of ENCODERS
     # Convolutional front-end
     encA = []
     encB = []
-    encA += [LeakyReLUConv2d(input_dim_a, ch, kernel_size=7, stride=1, padding=3)]
-    encB += [LeakyReLUConv2d(input_dim_b, ch, kernel_size=7, stride=1, padding=3)]
+    if activation_type == 'relu':
+      encA += [ReLUConv2d(input_dim_a, ch, kernel_size=7, stride=1, padding=3, pad_type=pad_type)]
+      encB += [ReLUConv2d(input_dim_b, ch, kernel_size=7, stride=1, padding=3, pad_type=pad_type)]
+    else:
+      encA += [LeakyReLUConv2d(input_dim_a, ch, kernel_size=7, stride=1, padding=3, pad_type=pad_type)]
+      encB += [LeakyReLUConv2d(input_dim_b, ch, kernel_size=7, stride=1, padding=3, pad_type=pad_type)]
+
     tch = ch
     for i in range(1,n_enc_front_blk):
-      encA += [LeakyReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1)]
-      encB += [LeakyReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1)]
+      if activation_type == 'relu':
+        encA += [ReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1, pad_type=pad_type)]
+        encB += [ReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1, pad_type=pad_type)]
+      else:
+        encA += [LeakyReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1, pad_type=pad_type)]
+        encB += [LeakyReLUConv2d(tch, tch * 2, kernel_size=3, stride=2, padding=1, pad_type=pad_type)]
       tch *= 2
     # Residual-block back-end
     for i in range(0, n_enc_res_blk):
-      encA += [INSResBlock(tch, tch, dropout=res_dropout_ratio)]
-      encB += [INSResBlock(tch, tch, dropout=res_dropout_ratio)]
+      encA += [INSResBlock(tch, tch, dropout=res_dropout_ratio, pad_type=pad_type)]
+      encB += [INSResBlock(tch, tch, dropout=res_dropout_ratio, pad_type=pad_type)]
     # END of ENCODERS
     ##############################################################################
 
@@ -93,11 +106,11 @@ class COCOResGen2(nn.Module):
     # Shared residual-blocks
     enc_shared = []
     for i in range(0, n_enc_shared_blk):
-      enc_shared += [INSResBlock(tch, tch, dropout=res_dropout_ratio)]
+      enc_shared += [INSResBlock(tch, tch, dropout=res_dropout_ratio, pad_type=pad_type)]
     enc_shared += [GaussianNoiseLayer()]
     dec_shared = []
     for i in range(0, n_gen_shared_blk):
-      dec_shared += [INSResBlock(tch, tch, dropout=res_dropout_ratio)]
+      dec_shared += [INSResBlock(tch, tch, dropout=res_dropout_ratio, pad_type=pad_type)]
     # END of SHARED LAYERS
     ##############################################################################
 
@@ -107,12 +120,12 @@ class COCOResGen2(nn.Module):
     decB = []
     # Residual-block front-end
     for i in range(0, n_gen_res_blk):
-      decA += [INSResBlock(tch, tch, dropout=res_dropout_ratio)]
-      decB += [INSResBlock(tch, tch, dropout=res_dropout_ratio)]
+      decA += [INSResBlock(tch, tch, dropout=res_dropout_ratio, pad_type=pad_type)]
+      decB += [INSResBlock(tch, tch, dropout=res_dropout_ratio, pad_type=pad_type)]
     # Convolutional back-end
     for i in range(0, n_gen_front_blk-1):
-      decA += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=3, stride=2, padding=1, output_padding=1)]
-      decB += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=3, stride=2, padding=1, output_padding=1)]
+      decA += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=4, stride=2, padding=1, output_padding=1)]
+      decB += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=4, stride=2, padding=1, output_padding=1)]
       tch = tch//2
     decA += [nn.ConvTranspose2d(tch, input_dim_a, kernel_size=1, stride=1, padding=0)]
     decB += [nn.ConvTranspose2d(tch, input_dim_b, kernel_size=1, stride=1, padding=0)]
