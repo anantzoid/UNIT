@@ -63,5 +63,8 @@ crop_image_height: 256                      # random crop image of this height
 crop_image_width: 256                       # random crop image of this width
 
 img_dir: /data2/fullbody_cropped_apr2018/png/png_labeled/
-data_root: /data2/generative/0702testshift1
+data_root: /data2/generative/0702humerus_ic3/ 
+
+# Regular: /data2/generative/0702humerus_ic3
+# Crop: /data2/generative/0703humerus_crop_ic0/ 
 

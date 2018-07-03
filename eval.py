@@ -48,8 +48,9 @@ trainer.gen.eval()
 
 test_loader_b = get_test_data_loaders(config)
 # Setup logger and output folders
-model_name = os.path.splitext(os.path.basename(opts.config))[0]
-output_directory = os.path.join(opts.output_path + "/evaluation_unit", "%s_%s"%(model_name, opts.model_path.split("/")[-1].split(".")[0].split("_")[-1]))
+base_path = opts.model_path.split("/")
+model_name = base_path[-3]#os.path.splitext(os.path.basename(opts.config))[0]
+output_directory = os.path.join(opts.output_path + "/evaluation_unit", "%s_%s"%(model_name, base_path[-1].split(".")[0].split("_")[-1]))
 print("output dir:", output_directory)
 
 if not os.path.exists(output_directory):
@@ -121,6 +122,9 @@ for it, images_b in enumerate(test_loader_b):
     gen_image[coords['sy']:coords['ey'], coords['sx']: coords['ex']] = image_output_
   except Exception as e:
     print(str(e))
+    print(images_b.size())
+    print(image_output.size())
+    print(image_output_.shape)
     print(coords)
     print(gen_image.shape)
     continue
@@ -149,5 +153,5 @@ for it, images_b in enumerate(test_loader_b):
     plt.close()
 
   
-  if it >= 50:
+  if it >= 100:
     break
