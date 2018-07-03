@@ -17,51 +17,35 @@ class UNIT_Trainer(nn.Module):
         super(UNIT_Trainer, self).__init__()
         lr = hyperparameters['lr']
         # Initiate the networks
-        self.dis = COCOSharedDis(hyperparameters['input_dim_a'], hyperparameters['input_dim_b'], hyperparameters['dis'])
-        self.gen = COCOResGen2(hyperparameters['input_dim_a'], hyperparameters['input_dim_b'], hyperparameters['gen'])
+        self.gen_a = VAEGen(hyperparameters['input_dim_a'], hyperparameters['gen'])  # auto-encoder for domain a
+        self.gen_b = VAEGen(hyperparameters['input_dim_b'], hyperparameters['gen'])  # auto-encoder for domain b
+        self.dis_a = MsImageDis(hyperparameters['input_dim_a'], hyperparameters['dis'])  # discriminator for domain a
+        self.dis_b = MsImageDis(hyperparameters['input_dim_b'], hyperparameters['dis'])  # discriminator for domain b
+        self.instancenorm = nn.InstanceNorm2d(512, affine=False)
 
         # Setup the optimizers
-        self.dis_opt = torch.optim.Adam(self.dis.parameters(), lr=lr, betas=(0.5, 0.999), weight_decay=0.0001)
-        self.gen_opt = torch.optim.Adam(self.gen.parameters(), lr=lr, betas=(0.5, 0.999), weight_decay=0.0001)
-        # Network weight initialization
-        self.dis.apply(gaussian_weights_init)
-        self.gen.apply(gaussian_weights_init)
-        # Setup the loss function for training
-        self.ll_loss_criterion_a = torch.nn.L1Loss()
-        self.ll_loss_criterion_b = torch.nn.L1Loss()
-
+        beta1 = hyperparameters['beta1']
+        beta2 = hyperparameters['beta2']
+        dis_params = list(self.dis_a.parameters()) + list(self.dis_b.parameters())
+        gen_params = list(self.gen_a.parameters()) + list(self.gen_b.parameters())
+        self.dis_opt = torch.optim.Adam([p for p in dis_params if p.requires_grad],
+                                        lr=lr, betas=(beta1, beta2), weight_decay=hyperparameters['weight_decay'])
+        self.gen_opt = torch.optim.Adam([p for p in gen_params if p.requires_grad],
+                                        lr=lr, betas=(beta1, beta2), weight_decay=hyperparameters['weight_decay'])
         self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters)
         self.gen_scheduler = get_scheduler(self.gen_opt, hyperparameters)
 
-        # self.gen_a = VAEGen(hyperparameters['input_dim_a'], hyperparameters['gen'])  # auto-encoder for domain a
-        # self.gen_b = VAEGen(hyperparameters['input_dim_b'], hyperparameters['gen'])  # auto-encoder for domain b
-        # self.dis_a = MsImageDis(hyperparameters['input_dim_a'], hyperparameters['dis'])  # discriminator for domain a
-        # self.dis_b = MsImageDis(hyperparameters['input_dim_b'], hyperparameters['dis'])  # discriminator for domain b
-        # self.instancenorm = nn.InstanceNorm2d(512, affine=False)
+        # Network weight initialization
+        self.apply(weights_init(hyperparameters['init']))
+        self.dis_a.apply(weights_init('gaussian'))
+        self.dis_b.apply(weights_init('gaussian'))
 
-        # # Setup the optimizers
-        # beta1 = hyperparameters['beta1']
-        # beta2 = hyperparameters['beta2']
-        # dis_params = list(self.dis_a.parameters()) + list(self.dis_b.parameters())
-        # gen_params = list(self.gen_a.parameters()) + list(self.gen_b.parameters())
-        # self.dis_opt = torch.optim.Adam([p for p in dis_params if p.requires_grad],
-        #                                 lr=lr, betas=(beta1, beta2), weight_decay=hyperparameters['weight_decay'])
-        # self.gen_opt = torch.optim.Adam([p for p in gen_params if p.requires_grad],
-        #                                 lr=lr, betas=(beta1, beta2), weight_decay=hyperparameters['weight_decay'])
-        # self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters)
-        # self.gen_scheduler = get_scheduler(self.gen_opt, hyperparameters)
-
-        # # Network weight initialization
-        # self.apply(weights_init(hyperparameters['init']))
-        # self.dis_a.apply(weights_init('gaussian'))
-        # self.dis_b.apply(weights_init('gaussian'))
-
-        # # Load VGG model if needed
-        # if 'vgg_w' in hyperparameters.keys() and hyperparameters['vgg_w'] > 0:
-        #     self.vgg = load_vgg16(hyperparameters['vgg_model_path'] + '/models')
-        #     self.vgg.eval()
-        #     for param in self.vgg.parameters():
-        #         param.requires_grad = False
+        # Load VGG model if needed
+        if 'vgg_w' in hyperparameters.keys() and hyperparameters['vgg_w'] > 0:
+            self.vgg = load_vgg16(hyperparameters['vgg_model_path'] + '/models')
+            self.vgg.eval()
+            for param in self.vgg.parameters():
+                param.requires_grad = False
 
     def recon_criterion(self, input, target):
         return torch.mean(torch.abs(input - target))
@@ -86,6 +70,9 @@ class UNIT_Trainer(nn.Module):
         mu_2 = torch.pow(mu, 2)
         encoding_loss = torch.mean(mu_2)
         return encoding_loss
+
+
+
 
     def gen_update(self, images_a, images_b, hyperparameters):
       self.gen.zero_grad()

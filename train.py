@@ -5,7 +5,7 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 from utils import get_train_data_loaders, get_test_data_loaders, prepare_sub_folder, write_html, write_loss, get_config, write_2images
 import argparse
 from torch.autograd import Variable
-from trainer import UNIT_Trainer
+from new_trainer import UNIT_Trainer
 import torch.backends.cudnn as cudnn
 import torch
 import torchvision
@@ -33,7 +33,7 @@ torch.cuda.set_device(opts.gpu)
 config = get_config(opts.config)
 max_iter = config['max_iter']
 display_size = config['display_size']
-config['vgg_model_path'] = opts.output_path
+config['vgg_model_path'] = '/data2/vgg_model'
 
 # Setup model and data loader
 trainer = UNIT_Trainer(config)
@@ -63,7 +63,7 @@ while True:
 
         # Main training code
         trainer.dis_update(images_a, images_b, config)
-        image_outputs =  trainer.gen_update(images_a, images_b, config)
+        trainer.gen_update(images_a, images_b, config)
 
 
         # Dump training stats in log file
@@ -74,25 +74,9 @@ while True:
         # Write images
         if (iterations + 1) % config['image_save_iter'] == 0:
             # Test set images
+            assembled_images = trainer.sample(images_a, images_b)
             img_filename = '%s/gen_%08d.jpg' % (image_directory, iterations + 1)
-            assembled_images = trainer.assemble_outputs(images_a, images_b, image_outputs)
             torchvision.utils.save_image(assembled_images.data, img_filename, nrow=1, normalize=True)
-            ##image_outputs = trainer.sample(test_display_images_a, test_display_images_b)
-            ##write_2images(image_outputs, display_size, image_directory, 'test_%08d' % (iterations + 1))
-            
-            # Train set images
-            ##image_outputs = trainer.sample(train_display_images_a, train_display_images_b)
-            ##write_2images(image_outputs, display_size, image_directory, 'train_%08d' % (iterations + 1))
-            # HTML
-            ##write_html(output_directory + "/index.html", iterations + 1, config['image_save_iter'], 'images')
-        
-        '''
-        if (iterations + 1) % config['image_display_iter'] == 0:
-            train_display_images_a = Variable(torch.stack([train_loader_a.dataset[i] for i in range(display_size)]).cuda(), volatile=True)
-            train_display_images_b = Variable(torch.stack([train_loader_b.dataset[i] for i in range(display_size)]).cuda(), volatile=True)
-            image_outputs = trainer.sample(train_display_images_a, train_display_images_b)
-            write_2images(image_outputs, display_size, image_directory, 'train_current')
-        '''
 
         # Save network weights
         if (iterations + 1) % config['snapshot_save_iter'] == 0:
