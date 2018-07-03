@@ -237,7 +237,7 @@ def vgg_preprocess(batch):
     mean[:, 0, :, :] = 103.939
     mean[:, 1, :, :] = 116.779
     mean[:, 2, :, :] = 123.680
-    batch = batch.sub(Variable(mean)) # subtract mean
+    batch = batch.sub(Variable(mean.cuda())) # subtract mean
     return batch
 
 

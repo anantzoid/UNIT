@@ -9,9 +9,13 @@
 # with only crops
 #python train.py --config configs/0624humerus.yaml --output_path /data2/unit --gpu 1
 
-python eval.py --config configs/0628test.yaml --patch_metadata /data2/generative/0629test/gendata_metadata.json --model_path /data2/unit/outputs/lesion/checkpoints/gen_00056000.pkl
+#python eval.py --config configs/0628test.yaml --patch_metadata /data2/generative/0629test/gendata_metadata.json --model_path /data2/unit/outputs/lesion/checkpoints/gen_00056000.pkl
 
 #0702
 # Eval on crop (the data is re-generated to account for metadata)
 #python eval.py --config configs/ --patch_metadata  --model_path /data2/unit/outputs/0624humerus/checkpoints/gen_00176500.pkl
 
+
+#python train.py --config configs/0702humerus_ic3.yaml
+#python train.py --config configs/0702humerus_ic3_novgg.yaml --gpu 1
+#python train.py --config configs/0702humerus_ic0_cc2_novgg.yaml --gpu 2

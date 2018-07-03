@@ -21,7 +21,7 @@ import shutil
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, help="gpu id", default=0)
 parser.add_argument('--config', type=str, default='configs/edges2handbags_folder', help='Path to the config file.')
-parser.add_argument('--output_path', type=str, default='.', help="outputs path")
+parser.add_argument('--output_path', type=str, default='/data2/unit', help="outputs path")
 parser.add_argument("--resume", action="store_true")
 opts = parser.parse_args()
 
@@ -76,7 +76,7 @@ while True:
             # Test set images
             assembled_images = trainer.sample(images_a, images_b)
             img_filename = '%s/gen_%08d.jpg' % (image_directory, iterations + 1)
-            torchvision.utils.save_image(assembled_images.data, img_filename, nrow=1, normalize=True)
+            torchvision.utils.save_image(assembled_images.data.cpu().squeeze(1), img_filename, nrow=1, normalize=True)
 
         # Save network weights
         if (iterations + 1) % config['snapshot_save_iter'] == 0:
