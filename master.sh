@@ -26,15 +26,20 @@
 #python train.py --config configs/0704humerus_border.yaml --gpu 0
 
 # border, reflection padding, kaiming init in G, relu in G
-#python train.py --config configs/0704humerus_border_init_pad_act.yaml --gpu 1
+#python train.py --config configs/0704humerus_border_init_pad_act.yaml --gpu 1 --> Stopped
 
 #zero padding
 #python train.py --config configs/0704humerus_border_init_act.yaml --gpu 2
 #all changes w/o vgg
 #python train.py --config configs/0704humerus_border_init_pad_act_up.yaml --gpu 3
 
+# stopping variants of full modification as they all seem to give the same generations
+# border loss leads to perfect reconstruction rather than translation
 
+# experiments to try:
+# run w/o border loss and other mods to see if BL is the culprit
+#python train.py --config configs/0704humerus_init_pad_act_up.yaml --gpu 1
+# reduce weightage and make it equal to adversarial
+#python train.py --config configs/0704humerus_bordersmall_init_pad_act_up.yaml --gpu 2
 
-
-
-
+# reduce border area
