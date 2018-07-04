@@ -70,7 +70,7 @@ class COCOResGen2(nn.Module):
     else:
       res_dropout_ratio = 0
 
-    activation_type = params['activation_type']
+    activation_type = params['activ']
     pad_type = params['pad_type']
 
     ##############################################################################
@@ -124,12 +124,17 @@ class COCOResGen2(nn.Module):
       decB += [INSResBlock(tch, tch, dropout=res_dropout_ratio, pad_type=pad_type)]
     # Convolutional back-end
     for i in range(0, n_gen_front_blk-1):
-      decA += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=4, stride=2, padding=1, output_padding=1)]
-      decB += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=4, stride=2, padding=1, output_padding=1)]
+      decA += [ReLUpsampleConv2d(tch, tch//2, kernel_size=3, stride=1, padding=1, pad_type=pad_type)]
+      decB += [ReLUpsampleConv2d(tch, tch//2, kernel_size=3, stride=1, padding=1, pad_type=pad_type)]
       tch = tch//2
+
+    
+    #decA += [nn.Upsample(scale_factor=2)]
     decA += [nn.ConvTranspose2d(tch, input_dim_a, kernel_size=1, stride=1, padding=0)]
-    decB += [nn.ConvTranspose2d(tch, input_dim_b, kernel_size=1, stride=1, padding=0)]
     decA += [nn.Tanh()]
+
+    #decB += [nn.Upsample(scale_factor=2)]
+    decB += [nn.ConvTranspose2d(tch, input_dim_b, kernel_size=1, stride=1, padding=0)]
     decB += [nn.Tanh()]
     # END of DECODERS
     ##############################################################################

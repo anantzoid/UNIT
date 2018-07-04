@@ -3,7 +3,7 @@ Copyright (C) 2017 NVIDIA Corporation.  All rights reserved.
 Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 """
 from networks import AdaINGen, MsImageDis, VAEGen
-from utils import weights_init, get_model_list, vgg_preprocess, load_vgg16, get_scheduler
+from utils import weights_init, get_model_list, vgg_preprocess, load_vgg16, get_scheduler, get_border_mask
 from torch.autograd import Variable
 import torch
 import torch.nn as nn
@@ -32,6 +32,17 @@ class UNIT_Trainer(nn.Module):
 
         self.dis_scheduler = get_scheduler(self.dis_opt, hyperparameters)
         self.gen_scheduler = get_scheduler(self.gen_opt, hyperparameters)
+
+
+        if hyperparameters['vgg_w'] > 0:
+          self.vgg = load_vgg16(hyperparameters['vgg_model_path'] + '/models_unit')
+          self.vgg.eval()
+          for param in self.vgg.parameters():
+            param.requires_grad = False
+          self.instancenorm = nn.InstanceNorm2d(512, affine=False)
+        if hyperparameters['border_w'] > 0:
+          self.border_mask = torch.from_numpy(get_border_mask((1, 3, 256, 256), 0.2)).float()
+          self.border_mask = Variable(self.border_mask.cuda(), requires_grad=False)
 
         # self.gen_a = VAEGen(hyperparameters['input_dim_a'], hyperparameters['gen'])  # auto-encoder for domain a
         # self.gen_b = VAEGen(hyperparameters['input_dim_b'], hyperparameters['gen'])  # auto-encoder for domain b
@@ -87,6 +98,17 @@ class UNIT_Trainer(nn.Module):
         encoding_loss = torch.mean(mu_2)
         return encoding_loss
 
+    def compute_vgg_loss(self, img, target):
+      # TODO change this later
+      img_vgg = vgg_preprocess(img)
+      target_vgg = vgg_preprocess(target)
+      img_fea = self.vgg(img_vgg)
+      target_fea = self.vgg(target_vgg)
+      return torch.mean((self.instancenorm(img_fea) - self.instancenorm(target_fea)) ** 2)
+ 
+    def compute_border_loss(self, img, target):
+      return torch.mean(torch.abs(img - target) * self.border_mask)  
+
     def gen_update(self, images_a, images_b, hyperparameters):
       self.gen.zero_grad()
       x_aa, x_ba, x_ab, x_bb, shared = self.gen(images_a, images_b)
@@ -111,11 +133,22 @@ class UNIT_Trainer(nn.Module):
       ll_loss_b = self.ll_loss_criterion_b(x_bb, images_b)
       ll_loss_aba = self.ll_loss_criterion_a(x_aba, images_a)
       ll_loss_bab = self.ll_loss_criterion_b(x_bab, images_b)
+
+      if hyperparameters['vgg_w'] > 0:
+        vgg_a_loss = self.compute_vgg_loss(images_a, x_ba)
+        vgg_b_loss = self.compute_vgg_loss(images_b, x_ab)
+      else:
+        vgg_a_loss, vgg_b_loss = 0, 0
+
+      border_loss = self.compute_border_loss(images_b, x_ba) if hyperparameters['border_w'] > 0 else 0
+      
       total_loss = hyperparameters['gan_w'] * (ad_loss_a + ad_loss_b) + \
                   hyperparameters['ll_direct_link_w'] * (ll_loss_a + ll_loss_b) + \
                   hyperparameters['ll_cycle_link_w'] * (ll_loss_aba + ll_loss_bab) + \
                   hyperparameters['kl_direct_link_w'] * (enc_loss + enc_loss) + \
-                  hyperparameters['kl_cycle_link_w'] * (enc_bab_loss + enc_aba_loss)
+                  hyperparameters['kl_cycle_link_w'] * (enc_bab_loss + enc_aba_loss) + \
+                  hyperparameters['vgg_w'] * (vgg_a_loss + vgg_b_loss) + \
+                  hyperparameters['border_w'] * (border_loss)
       total_loss.backward()
       self.gen_opt.step()
       self.gen_enc_loss = enc_loss.data.cpu().numpy()[0]
@@ -218,12 +251,12 @@ class UNIT_Trainer(nn.Module):
     #     self.loss_gen_total.backward()
     #     self.gen_opt.step()
 
-    def compute_vgg_loss(self, vgg, img, target):
-        img_vgg = vgg_preprocess(img)
-        target_vgg = vgg_preprocess(target)
-        img_fea = vgg(img_vgg)
-        target_fea = vgg(target_vgg)
-        return torch.mean((self.instancenorm(img_fea) - self.instancenorm(target_fea)) ** 2)
+    # def compute_vgg_loss(self, vgg, img, target):
+    #     img_vgg = vgg_preprocess(img)
+    #     target_vgg = vgg_preprocess(target)
+    #     img_fea = vgg(img_vgg)
+    #     target_fea = vgg(target_vgg)
+    #     return torch.mean((self.instancenorm(img_fea) - self.instancenorm(target_fea)) ** 2)
 
     
     def assemble_outputs(self, images_a, images_b, network_outputs):

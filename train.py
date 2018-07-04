@@ -33,7 +33,7 @@ torch.cuda.set_device(opts.gpu)
 config = get_config(opts.config)
 max_iter = config['max_iter']
 display_size = config['display_size']
-config['vgg_model_path'] = opts.output_path
+config['vgg_model_path'] = '/data2/vgg_model/'
 
 # Setup model and data loader
 trainer = UNIT_Trainer(config)
@@ -64,6 +64,9 @@ while True:
         # Main training code
         trainer.dis_update(images_a, images_b, config)
         image_outputs =  trainer.gen_update(images_a, images_b, config)
+        for i in image_outputs:
+          print(i.size())
+        exit()
 
 
         # Dump training stats in log file

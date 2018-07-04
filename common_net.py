@@ -146,6 +146,18 @@ class LeakyReLUConv2d(nn.Module):
   def forward(self, x):
     return self.model(x)
 
+class ReLUpsampleConv2d(nn.Module):
+  def __init__(self, n_in, n_out, kernel_size, stride, padding=0, pad_type='zero'):
+    super(ReLUpsampleConv2d, self).__init__()
+    model = []
+    model += [nn.Upsample(scale_factor=2)]
+    model += [ReLUConv2d(n_in, n_out, kernel_size, stride, padding, pad_type=pad_type)]
+    self.model = nn.Sequential(*model)
+    self.model.apply(gaussian_weights_init)
+
+  def forward(self, x):
+    return self.model(x)
+
 class LeakyReLUConvTranspose2d(nn.Module):
   def __init__(self, n_in, n_out, kernel_size, stride, padding=0, output_padding=0):
     super(LeakyReLUConvTranspose2d, self).__init__()
