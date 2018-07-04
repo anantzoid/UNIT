@@ -107,7 +107,7 @@ class UNIT_Trainer(nn.Module):
       return torch.mean((self.instancenorm(img_fea) - self.instancenorm(target_fea)) ** 2)
  
     def compute_border_loss(self, img, target):
-      return torch.mean(torch.abs(img - target) * self.border_mask)  
+      return torch.sum((torch.abs(img - target) * self.border_mask) / torch.sum(self.border_mask))  
 
     def gen_update(self, images_a, images_b, hyperparameters):
       self.gen.zero_grad()
@@ -160,6 +160,7 @@ class UNIT_Trainer(nn.Module):
       self.gen_ll_loss_b = ll_loss_b.data.cpu().numpy()[0]
       self.gen_ll_loss_aba = ll_loss_aba.data.cpu().numpy()[0]
       self.gen_ll_loss_bab = ll_loss_bab.data.cpu().numpy()[0]
+      self.border_loss = border_loss.data.cpu().numpy()[0]
       self.gen_total_loss = total_loss.data.cpu().numpy()[0]
       return (x_aa, x_ba, x_ab, x_bb, x_aba, x_bab)
 

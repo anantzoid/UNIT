@@ -64,9 +64,10 @@ while True:
         # Main training code
         trainer.dis_update(images_a, images_b, config)
         image_outputs =  trainer.gen_update(images_a, images_b, config)
-        for i in image_outputs:
-          print(i.size())
-        exit()
+        #for i in image_outputs:
+        #  print(i.size())
+        #print(trainer.border_loss)
+        #exit()
 
 
         # Dump training stats in log file
