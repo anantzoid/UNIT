@@ -21,7 +21,7 @@ import shutil
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, help="gpu id", default=0)
 parser.add_argument('--config', type=str, default='configs/edges2handbags_folder', help='Path to the config file.')
-parser.add_argument('--output_path', type=str, default='.', help="outputs path")
+parser.add_argument('--output_path', type=str, default='/data2/unit/', help="outputs path")
 parser.add_argument("--resume", action="store_true")
 opts = parser.parse_args()
 
@@ -47,6 +47,8 @@ test_display_images_a = Variable(torch.stack([test_loader_a.dataset[i] for i in 
 test_display_images_b = Variable(torch.stack([test_loader_b.dataset[i] for i in range(display_size)]).cuda(), volatile=True)
 '''
 
+print("========Generator===========")
+print(trainer.gen)
 # Setup logger and output folders
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
 train_writer = tensorboardX.SummaryWriter(os.path.join(opts.output_path + "/logs", model_name))

@@ -21,11 +21,17 @@ class UNIT_Trainer(nn.Module):
         self.gen = COCOResGen2(hyperparameters['input_dim_a'], hyperparameters['input_dim_b'], hyperparameters['gen'])
 
         # Setup the optimizers
-        self.dis_opt = torch.optim.Adam(self.dis.parameters(), lr=lr, betas=(0.5, 0.999), weight_decay=0.0001)
-        self.gen_opt = torch.optim.Adam(self.gen.parameters(), lr=lr, betas=(0.5, 0.999), weight_decay=0.0001)
+        self.dis_opt = torch.optim.Adam(self.dis.parameters(), lr=lr, betas=(0.5, 0.999), weight_decay=hyperparameters['weight_decay'])
+        self.gen_opt = torch.optim.Adam(self.gen.parameters(), lr=lr, betas=(0.5, 0.999), weight_decay=hyperparameters['weight_decay'])
+
         # Network weight initialization
-        self.dis.apply(gaussian_weights_init)
-        self.gen.apply(gaussian_weights_init)
+        if hyperparameters['init_scheme'] == 'old':
+          self.dis.apply(gaussian_weights_init)
+          self.gen.apply(gaussian_weights_init)
+        else:
+          self.gen.apply(weights_init(hyperparameters['init']))
+          self.dis.apply(weights_init('gaussian'))
+
         # Setup the loss function for training
         self.ll_loss_criterion_a = torch.nn.L1Loss()
         self.ll_loss_criterion_b = torch.nn.L1Loss()
@@ -43,6 +49,7 @@ class UNIT_Trainer(nn.Module):
         if hyperparameters['border_w'] > 0:
           self.border_mask = torch.from_numpy(get_border_mask((1, 3, 256, 256), 0.2)).float()
           self.border_mask = Variable(self.border_mask.cuda(), requires_grad=False)
+
 
         # self.gen_a = VAEGen(hyperparameters['input_dim_a'], hyperparameters['gen'])  # auto-encoder for domain a
         # self.gen_b = VAEGen(hyperparameters['input_dim_b'], hyperparameters['gen'])  # auto-encoder for domain b
@@ -160,7 +167,9 @@ class UNIT_Trainer(nn.Module):
       self.gen_ll_loss_b = ll_loss_b.data.cpu().numpy()[0]
       self.gen_ll_loss_aba = ll_loss_aba.data.cpu().numpy()[0]
       self.gen_ll_loss_bab = ll_loss_bab.data.cpu().numpy()[0]
-      self.border_loss = border_loss.data.cpu().numpy()[0]
+      #TODO add vgg loss as well
+      if hyperparameters['border_w'] > 0:
+        self.border_loss = border_loss.data.cpu().numpy()[0]
       self.gen_total_loss = total_loss.data.cpu().numpy()[0]
       return (x_aa, x_ba, x_ab, x_bb, x_aba, x_bab)
 
