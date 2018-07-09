@@ -26,4 +26,8 @@
 #python train.py --config configs/0705humerus.yaml --output_path /data2/unit/0705/ --gpu 0
 #python train.py --config configs/0705humerus_border_sameadv.yaml --output_path /data2/unit/0705/ --gpu 1 
 #python train.py --config configs/0705humerus_border_lessadv.yaml --output_path /data2/unit/0705/ --gpu 2  
-python train.py --config configs/0705humerus_border_sameadv_lessratio.yaml --output_path /data2/unit/0705/ --gpu 3 
+#python train.py --config configs/0705humerus_border_sameadv_lessratio.yaml --output_path /data2/unit/0705/ --gpu 3 
+
+#0709
+#gan_w is 1
+python train.py --config configs/0709humerus.yaml --output_path /data2/unit/ --gpu 0
