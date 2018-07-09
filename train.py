@@ -46,6 +46,7 @@ train_display_images_b = Variable(torch.stack([train_loader_b.dataset[i] for i i
 test_display_images_a = Variable(torch.stack([test_loader_a.dataset[i] for i in range(display_size)]).cuda(), volatile=True)
 test_display_images_b = Variable(torch.stack([test_loader_b.dataset[i] for i in range(display_size)]).cuda(), volatile=True)
 '''
+print(trainer.gen)
 
 # Setup logger and output folders
 model_name = os.path.splitext(os.path.basename(opts.config))[0]

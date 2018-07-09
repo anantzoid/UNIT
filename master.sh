@@ -18,3 +18,12 @@
 
 #0703
 #50 samples eval on 0702humerus_ic3, 0703humerus_crop_ic0 with models 0621humerus_00060000, 0624humerus_00176500 respectively 
+
+#0704
+# in variant1 branch
+
+#0705
+#python train.py --config configs/0705humerus.yaml --output_path /data2/unit/0705/ --gpu 0
+#python train.py --config configs/0705humerus_border_sameadv.yaml --output_path /data2/unit/0705/ --gpu 1 
+#python train.py --config configs/0705humerus_border_lessadv.yaml --output_path /data2/unit/0705/ --gpu 2  
+python train.py --config configs/0705humerus_border_sameadv_lessratio.yaml --output_path /data2/unit/0705/ --gpu 3 

@@ -89,6 +89,15 @@ def get_config(config):
     with open(config, 'r') as stream:
         return yaml.load(stream)
 
+def get_border_mask(mask_size, border_size):
+  ## TODO checks for 4 dimension
+  mask = np.zeros(mask_size)
+  hlimit, wlimit = int(border_size * mask_size[2]), int(border_size * mask_size[3])
+  mask[:,:,:hlimit, :] = 1.0
+  mask[:,:,:, :wlimit] = 1.0
+  mask[:,:, mask_size[2]-hlimit:, :] = 1.0
+  mask[:,:, :, mask_size[3]-wlimit:] = 1.0
+  return mask
 
 def eformat(f, prec):
     s = "%.*e"%(prec, f)
