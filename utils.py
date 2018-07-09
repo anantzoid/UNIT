@@ -53,7 +53,7 @@ def get_train_data_loaders(conf):
     return train_loader_a, train_loader_b
 
 
-def get_test_data_loaders(conf):
+def get_test_data_loaders(conf, shuffle_force=False):
     batch_size = conf['batch_size']
     num_workers = conf['num_workers']
     if 'new_size' in conf:
@@ -65,13 +65,13 @@ def get_test_data_loaders(conf):
     width = conf['crop_image_width']
 
     test_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'testB'), batch_size, False,
-                                    new_size_b, new_size_b, new_size_b, num_workers, False)
+                                    new_size_b, new_size_b, new_size_b, num_workers, False, shuffle_force)
     return test_loader_b
 
 
 
 def get_data_loader_folder(input_folder, batch_size, train, new_size=None,
-                           height=256, width=256, num_workers=4, crop=True):
+                           height=256, width=256, num_workers=4, crop=True, shuffle_force=False):
     transform_list = [transforms.ToTensor()]
     transform_list = [transforms.ToTensor(),
                       transforms.Normalize((0.5, 0.5, 0.5),
@@ -81,6 +81,8 @@ def get_data_loader_folder(input_folder, batch_size, train, new_size=None,
     transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
     transform = transforms.Compose(transform_list)
     dataset = ImageFolder(input_folder, transform=transform, test=not(train))
+    if shuffle_force is True:
+      train = True
     loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=train, drop_last=True, num_workers=num_workers)
     return loader
 

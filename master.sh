@@ -23,5 +23,9 @@
 
 #0709
 # epoch-wise qual analysis
-python compare_samples.py --gpu 1 --model_dir /data2/unit/0705/outputs/0705humerus --epoch_interval 1000 --epoch_limit 41000,50000  --samples 10,15
+#python compare_samples.py --gpu 1 --model_dir /data2/unit/0705/outputs/0705humerus --epoch_interval 1000 --epoch_limit 41000,50000  --samples 10,15
 #python compare_samples.py --gpu 1 --model_dir /data2/unit/0705/outputs/0705humerus --epoch_interval 1000 --epoch_limit 51000,60000  --samples 10,20
+#python compare_samples.py --gpu 1 --model_dir /data2/unit/outputs/lesion --epoch_interval 500 --epoch_limit 57000,60000  --samples 15,25 
+
+
+python eval.py --gpu 2 --config /data2/unit/outputs/lesion/config.yaml --model_path /data2/unit/outputs/lesion/checkpoints/gen_00040000.pkl

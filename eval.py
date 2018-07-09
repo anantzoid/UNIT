@@ -16,6 +16,7 @@ except ImportError: # will be 3.x series
 import os
 import sys
 import json
+import tqdm
 
 import numpy as np
 from skimage import transform
@@ -23,7 +24,7 @@ from PIL import Image
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, help="gpu id", default=0)
-parser.add_argument('--config', type=str, default='configs/edges2handbags_folder', help='Path to the config file.')
+parser.add_argument('--config', type=str, default='configs/lesion.yaml', help='Path to the config file.')
 parser.add_argument('--output_path', type=str, default='/data2/unit', help="outputs path")
 parser.add_argument('--model_path', type=str, default='', help="model path")
 
@@ -32,6 +33,8 @@ opts = parser.parse_args()
 
 if opts.model_path == '':
   assert "Need model path"
+
+breakpoint = 600
 
 torch.cuda.set_device(opts.gpu)
 
@@ -46,7 +49,7 @@ trainer.gen.load_state_dict(torch.load(opts.model_path))
 trainer.cuda()
 trainer.gen.eval()
 
-test_loader_b = get_test_data_loaders(config)
+test_loader_b = get_test_data_loaders(config, shuffle_force=True)
 # Setup logger and output folders
 base_path = opts.model_path.split("/")
 model_name = base_path[-3]#os.path.splitext(os.path.basename(opts.config))[0]
@@ -92,7 +95,7 @@ def im_trans(image_output):
   image_output = np_norm_im(image_output)#, minmax[0], minmax[1])
   return image_output
 
-for it, images_b in enumerate(test_loader_b):
+for it, images_b in tqdm.tqdm(enumerate(test_loader_b), total=breakpoint):
   images_b, image_path, image_size = images_b
   images_b = Variable(images_b.cuda(), volatile=True)
   image_output, _ = trainer.gen.forward_b2a(images_b)
@@ -153,5 +156,5 @@ for it, images_b in enumerate(test_loader_b):
     plt.close()
 
   
-  if it >= 100:
+  if it >= breakpoint:
     break
