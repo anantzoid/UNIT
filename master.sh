@@ -28,4 +28,10 @@
 #python compare_samples.py --gpu 1 --model_dir /data2/unit/outputs/lesion --epoch_interval 500 --epoch_limit 57000,60000  --samples 15,25 
 
 
-python eval.py --gpu 2 --config /data2/unit/outputs/lesion/config.yaml --model_path /data2/unit/outputs/lesion/checkpoints/gen_00040000.pkl
+#python eval.py --gpu 2 --config /data2/unit/outputs/lesion/config.yaml --model_path /data2/unit/outputs/lesion/checkpoints/gen_00040000.pkl
+#gan_w is 1
+#python train.py --config configs/0709humerus.yaml --output_path /data2/unit/ --gpu 0
+
+#0712
+#eval 
+#python eval.py --gpu 2 --config /data2/unit/0705/outputs/0705humerus_border_lessadv/config.yaml --model_path /data2/unit/0705/outputs/0705humerus_border_lessadv/checkpoints/gen_00170000.pkl
