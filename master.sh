@@ -30,4 +30,13 @@
 
 #0709
 #gan_w is 1
-python train.py --config configs/0709humerus.yaml --output_path /data2/unit/ --gpu 0
+#python train.py --config configs/0709humerus.yaml --output_path /data2/unit/ --gpu 0
+
+#0716
+#testing new borderloss,with gan_w:10,border_w:10
+#python train.py --config configs/0716borderloss.yaml  --gpu 2
+#borderloss was not dec. above
+#python train.py --config configs/0716borderloss_highbl.yaml  --gpu 2
+#setting gan_w back to 1 as D_loss was ~30
+#python train.py --config configs/0716borderloss_highbl_lowgan.yaml  --gpu 3
+

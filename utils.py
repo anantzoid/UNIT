@@ -72,13 +72,13 @@ def get_test_data_loaders(conf):
 
 def get_data_loader_folder(input_folder, batch_size, train, new_size=None,
                            height=256, width=256, num_workers=4, crop=True):
-    transform_list = [transforms.ToTensor()]
+    #transform_list = [transforms.ToTensor()]
     transform_list = [transforms.ToTensor(),
                       transforms.Normalize((0.5, 0.5, 0.5),
                                            (0.5, 0.5, 0.5))]
     transform_list = [transforms.RandomCrop((height, width))] + transform_list if crop else transform_list
     transform_list = [transforms.Resize((new_size, new_size))] + transform_list if new_size is not None else transform_list
-    #transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
+    transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
     transform = transforms.Compose(transform_list)
     dataset = ImageFolder(input_folder, transform=transform, test=not(train))
     loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=train, drop_last=True, num_workers=num_workers)
@@ -92,13 +92,11 @@ def get_config(config):
 def get_border_mask(mask_size, border_size, gamma):
   mask = np.zeros(mask_size)
   hlimit, wlimit = int(border_size * mask_size[2]), int(border_size * mask_size[3])
-
   for i, j in zip(range(0, hlimit), range(0, wlimit)):
-    mask[:,:,i, j:w-j] = gamma**i
-    mask[:,:,h-i-1, j:w-j] = gamma**i
-    mask[:,:, i:h-i, j] = gamma**i
-    mask[:,:, i:h-i, w-j-1] = gamma**i    
-
+    mask[:,:, i, j:mask_size[3]-j] = gamma**i
+    mask[:,:, mask_size[2]-i-1, j:mask_size[3]-j] = gamma**i
+    mask[:,:, i:mask_size[2]-i, j] = gamma**i
+    mask[:,:, i:mask_size[2]-i, mask_size[3]-j-1] = gamma**i    
   return mask
 
 def eformat(f, prec):
