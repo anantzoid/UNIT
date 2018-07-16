@@ -34,8 +34,9 @@ class UNIT_Trainer(nn.Module):
         self.gen_scheduler = get_scheduler(self.gen_opt, hyperparameters)
 
         if hyperparameters['border_w'] > 0:
-          self.border_mask = torch.from_numpy(get_border_mask((1, 3, 256, 256), hyperparameters['border_ratio'])).float()
-          self.border_mask = Variable(self.border_mask.cuda(), requires_grad=False)
+          self.border_mask = torch.from_numpy(get_border_mask((1, 3, 256, 256), 
+            hyperparameters['border_ratio'], hyperparameters['border_gamma'])).float()
+          self.border_mask = Variable(self.border_mask.cuda())
 
 
         # self.gen_a = VAEGen(hyperparameters['input_dim_a'], hyperparameters['gen'])  # auto-encoder for domain a
