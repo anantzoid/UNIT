@@ -121,14 +121,15 @@ class UNIT_Trainer(nn.Module):
       ll_loss_aba = self.ll_loss_criterion_a(x_aba, images_a)
       ll_loss_bab = self.ll_loss_criterion_b(x_bab, images_b)
 
-      border_loss = self.compute_border_loss(images_b, x_ba) if hyperparameters['border_w'] > 0 else 0
+      border_loss_b = self.compute_border_loss(images_b, x_ba) if hyperparameters['border_w'] > 0 else 0
+      border_loss_a = self.compute_border_loss(images_a, x_ab) if hyperparameters['border_w'] > 0 else 0
 
       total_loss = hyperparameters['gan_w'] * (ad_loss_a + ad_loss_b) + \
                   hyperparameters['ll_direct_link_w'] * (ll_loss_a + ll_loss_b) + \
                   hyperparameters['ll_cycle_link_w'] * (ll_loss_aba + ll_loss_bab) + \
                   hyperparameters['kl_direct_link_w'] * (enc_loss + enc_loss) + \
                   hyperparameters['kl_cycle_link_w'] * (enc_bab_loss + enc_aba_loss) + \
-                  hyperparameters['border_w'] * (border_loss)
+                  hyperparameters['border_w'] * (border_loss_b + border_loss_a)
       total_loss.backward()
       self.gen_opt.step()
       self.gen_enc_loss = enc_loss.data.cpu().numpy()[0]
@@ -141,8 +142,11 @@ class UNIT_Trainer(nn.Module):
       self.gen_ll_loss_aba = ll_loss_aba.data.cpu().numpy()[0]
       self.gen_ll_loss_bab = ll_loss_bab.data.cpu().numpy()[0]
       self.gen_total_loss = total_loss.data.cpu().numpy()[0]
+
       if hyperparameters['border_w'] > 0:
-        self.border_loss = border_loss.data.cpu().numpy()[0]
+        #self.border_loss = border_loss.data.cpu().numpy()[0]
+        self.border_loss_a = border_loss_a.data.cpu().numpy()[0]
+        self.border_loss_b = border_loss_b.data.cpu().numpy()[0]
       return (x_aa, x_ba, x_ab, x_bb, x_aba, x_bab)
 
     def dis_update(self, images_a, images_b, hyperparameters):
@@ -295,13 +299,16 @@ class UNIT_Trainer(nn.Module):
     def resume(self, snapshot_prefix, hyperparameters):
         dirname = snapshot_prefix#os.path.dirname(snapshot_prefix)
         last_model_name = get_model_list(dirname,"gen")
+        #last_model_name = "/data2/unit/outputs/lesion/checkpoints/gen_00040000.pkl"
         if last_model_name is None:
           return 0
         self.gen.load_state_dict(torch.load(last_model_name))
         iterations = int(last_model_name[-12:-4])
         last_model_name = get_model_list(dirname, "dis")
+        #last_model_name = "/data2/unit/outputs/lesion/checkpoints/dis_00040000.pkl"
         self.dis.load_state_dict(torch.load(last_model_name))
         # Load optimizers
+        #snapshot_prefix = "/data2/unit/outputs/lesion/checkpoints/"
         state_dict = torch.load(os.path.join(snapshot_prefix, 'optimizer.pt'))
         self.dis_opt.load_state_dict(state_dict['dis'])
         self.gen_opt.load_state_dict(state_dict['gen'])

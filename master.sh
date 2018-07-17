@@ -40,3 +40,13 @@
 #setting gan_w back to 1 as D_loss was ~30
 #python train.py --config configs/0716borderloss_highbl_lowgan.yaml  --gpu 3
 
+#applying borderloss on pretrained
+#python train.py --config configs/lesion.yaml  --gpu 0 --resume
+
+#0717
+#eval generations
+#python eval.py --gpu 1 --config /data2/unit/outputs/lesion/config.yaml --model_path /data2/unit/outputs/lesion/checkpoints/gen_00040000.pkl
+#python eval.py --gpu 1 --config /data2/unit/outputs/lesion/config.yaml --model_path /data2/unit/outputs/lesion/checkpoints/gen_00070000.pkl
+
+#2way border loss
+#python train.py --config configs/lesion.yaml  --gpu 0 --resume

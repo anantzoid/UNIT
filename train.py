@@ -50,6 +50,7 @@ print(trainer.gen)
 
 # Setup logger and output folders
 model_name = os.path.splitext(os.path.basename(opts.config))[0]
+#model_name = "0716_ws_bl_2way_highgan"
 train_writer = tensorboardX.SummaryWriter(os.path.join(opts.output_path + "/logs", model_name))
 output_directory = os.path.join(opts.output_path + "/outputs", model_name)
 checkpoint_directory, image_directory = prepare_sub_folder(output_directory)
