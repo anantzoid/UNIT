@@ -30,4 +30,9 @@
 
 #0709
 #gan_w is 1
-python train.py --config configs/0709humerus.yaml --output_path /data2/unit/ --gpu 0
+#python train.py --config configs/0709humerus.yaml --output_path /data2/unit/ --gpu 0
+
+#0716
+#border loss deafult params with gan_w=10
+#python train.py --config configs/0716borderloss.yaml --gpu 0
+

@@ -4,6 +4,7 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 """
 from networks import AdaINGen, MsImageDis, VAEGen
 from utils import weights_init, get_model_list, vgg_preprocess, load_vgg16, get_scheduler, get_border_mask
+from utils import gram_matrix, load_patch_vgg19
 from torch.autograd import Variable
 import torch
 import torch.nn as nn
@@ -11,6 +12,10 @@ import os
 import itertools
 from gan_nets import *
 from helpers import _compute_true_acc, _compute_fake_acc
+try:
+    from itertools import izip as zip
+except ImportError: # will be 3.x series
+    pass
 
 class UNIT_Trainer(nn.Module):
     def __init__(self, hyperparameters):
@@ -38,7 +43,8 @@ class UNIT_Trainer(nn.Module):
             hyperparameters['border_ratio'], hyperparameters['border_gamma'])).float()
           self.border_mask = Variable(self.border_mask.cuda())
 
-
+        if hyperparameters['style_w'] > 0:
+	  self.vgg = load_patch_vgg19(hyperparameters['vgg_model_path'])
         # self.gen_a = VAEGen(hyperparameters['input_dim_a'], hyperparameters['gen'])  # auto-encoder for domain a
         # self.gen_b = VAEGen(hyperparameters['input_dim_b'], hyperparameters['gen'])  # auto-encoder for domain b
         # self.dis_a = MsImageDis(hyperparameters['input_dim_a'], hyperparameters['dis'])  # discriminator for domain a
@@ -95,7 +101,7 @@ class UNIT_Trainer(nn.Module):
 
     def compute_border_loss(self, img, target):
       return torch.sum((torch.abs(img - target) * self.border_mask) / torch.sum(self.border_mask))
-
+    
     def gen_update(self, images_a, images_b, hyperparameters):
       self.gen.zero_grad()
       x_aa, x_ba, x_ab, x_bb, shared = self.gen(images_a, images_b)
@@ -121,14 +127,21 @@ class UNIT_Trainer(nn.Module):
       ll_loss_aba = self.ll_loss_criterion_a(x_aba, images_a)
       ll_loss_bab = self.ll_loss_criterion_b(x_bab, images_b)
 
-      border_loss = self.compute_border_loss(images_b, x_ba) if hyperparameters['border_w'] > 0 else 0
+      if hyperparameters['border_w'] > 0:
+        border_loss_b = self.compute_border_loss(x_ba, images_b)
+      else:
+        border_loss_a, border_loss_b = 0, 0
+
+     if hyperparameters['style_w'] > 0:
+         style_loss_b = self.compute_style_loss(x_ba, images_b)
 
       total_loss = hyperparameters['gan_w'] * (ad_loss_a + ad_loss_b) + \
                   hyperparameters['ll_direct_link_w'] * (ll_loss_a + ll_loss_b) + \
                   hyperparameters['ll_cycle_link_w'] * (ll_loss_aba + ll_loss_bab) + \
                   hyperparameters['kl_direct_link_w'] * (enc_loss + enc_loss) + \
                   hyperparameters['kl_cycle_link_w'] * (enc_bab_loss + enc_aba_loss) + \
-                  hyperparameters['border_w'] * (border_loss)
+                  hyperparameters['border_w'] * (border_loss_b) + \
+                  hyperparameters['style_w'] * (style_loss_b)
       total_loss.backward()
       self.gen_opt.step()
       self.gen_enc_loss = enc_loss.data.cpu().numpy()[0]
@@ -142,7 +155,10 @@ class UNIT_Trainer(nn.Module):
       self.gen_ll_loss_bab = ll_loss_bab.data.cpu().numpy()[0]
       self.gen_total_loss = total_loss.data.cpu().numpy()[0]
       if hyperparameters['border_w'] > 0:
-        self.border_loss = border_loss.data.cpu().numpy()[0]
+        self.border_loss_b = border_loss_b.data.cpu().numpy()[0]
+      if hyperparameters['style_w'] > 0:
+        self.style_loss_b = style_loss_b.data.cpu().numpy()[0]
+
       return (x_aa, x_ba, x_ab, x_bb, x_aba, x_bab)
 
     def dis_update(self, images_a, images_b, hyperparameters):
@@ -240,6 +256,13 @@ class UNIT_Trainer(nn.Module):
         target_fea = vgg(target_vgg)
         return torch.mean((self.instancenorm(img_fea) - self.instancenorm(target_fea)) ** 2)
 
+    def compute_style_loss(self, img, target):
+      vgg_img = self.vgg(img) 
+      vgg_target = self.vgg(target) 
+      style_loss = 0.0
+      for i,j in zip(vgg_img, vgg_target):
+        style_loss += torch.mean(torch.abs(gram_matrix(self.instancenorm(i)) - gram_matrix(self.instancenorm(j))))
+      return style_loss 
     
     def assemble_outputs(self, images_a, images_b, network_outputs):
         images_a = self.normalize_image(images_a)

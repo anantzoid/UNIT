@@ -98,8 +98,14 @@ def get_border_mask(mask_size, border_size, gamma):
     mask[:,:,h-i-1, j:w-j] = gamma**i
     mask[:,:, i:h-i, j] = gamma**i
     mask[:,:, i:h-i, w-j-1] = gamma**i    
-
   return mask
+
+def gram_matrix(y):
+    (b, ch, h, w) = y.size()
+    features = y.view(b, ch, w * h)
+    features_t = features.transpose(1, 2)
+    gram = features.bmm(features_t) / (ch * h * w)
+    return gram
 
 def eformat(f, prec):
     s = "%.*e"%(prec, f)
