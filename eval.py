@@ -9,6 +9,7 @@ from trainer import UNIT_Trainer
 import torch.backends.cudnn as cudnn
 import torch
 import torchvision
+import torchvision.transforms.functional as F
 try:
     from itertools import izip as zip
 except ImportError: # will be 3.x series
@@ -17,6 +18,7 @@ import os
 import sys
 import json
 import tqdm
+from datetime import datetime
 
 import numpy as np
 from skimage import transform
@@ -53,7 +55,10 @@ test_loader_b = get_test_data_loaders(config, shuffle_force=True)
 # Setup logger and output folders
 base_path = opts.model_path.split("/")
 model_name = base_path[-3]#os.path.splitext(os.path.basename(opts.config))[0]
-output_directory = os.path.join(opts.output_path + "/evaluation_unit", "%s_%s"%(model_name, base_path[-1].split(".")[0].split("_")[-1]))
+ts = str(datetime.now()).split(".")[0].replace(" ", "_")
+output_directory = os.path.join(opts.output_path + "/evaluation_unit", "%s_%s_%s_%s"%(config['data_root'].rstrip("/").split("/")[-1],
+                            model_name, base_path[-1].split(".")[0].split("_")[-1],
+                            ts))
 print("output dir:", output_directory)
 
 if not os.path.exists(output_directory):
@@ -65,6 +70,7 @@ for d in ['gen', 'original', 'debug', 'blended']:
     os.makedirs(d)
 
 def np_norm_im(img):
+  return img*0.5 + 0.5
   min, max = float(np.min(img)), float(np.max(img))
   img = np.clip(img, min, max)
   img = (img - min) / (max - min + 1e-5)
@@ -98,9 +104,10 @@ def im_trans(image_output):
 def save_merged_image(resized_image, coords, patch, save_dir):
   gen_image = np.copy(resized_image)
   gen_image[coords['sy']:coords['ey'], coords['sx']: coords['ex']] = patch
-  gen_image = np.clip(gen_image * 255, 0, 255).astype('uint8')
-  im = Image.fromarray(gen_image)
+  gen_image_ = np.clip(gen_image * 255, 0, 255).astype('uint8')
+  im = Image.fromarray(gen_image_)
   im.save(save_dir)
+  return gen_image
 
 def getmask():
   mesh = np.linspace(-1,1,256)
@@ -111,9 +118,12 @@ def getmask():
   return alpha
 alpha = getmask()
 
+mean, std = (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
 for it, images_b in tqdm.tqdm(enumerate(test_loader_b), total=breakpoint):
   images_b, image_path, image_size = images_b
-  images_b = Variable(images_b.cuda(), volatile=True)
+  # test images are unnormalized, in range 0-1. Normalise them before translation
+  images_b_ = np.mean(np.copy(images_b.numpy())[0], 0)
+  images_b = Variable(F.normalize(images_b[0], mean, std).unsqueeze(0).cuda(), volatile=True)
   image_output, _ = trainer.gen.forward_b2a(images_b)
 
   image_name = image_path[0].split("/")[-1]
@@ -132,8 +142,8 @@ for it, images_b in tqdm.tqdm(enumerate(test_loader_b), total=breakpoint):
   resized_image, coords = resize_image_by_crop(orig_image, coords, target_size) 
   
   image_output_ = im_trans(image_output)
-  images_b_ = im_trans(images_b)
-  resized_image = np_norm_im(resized_image)
+  #images_b_ = im_trans(images_b)
+  #resized_image = np_norm_im(resized_image)
 
   blended = (1-alpha)*image_output_ + alpha*images_b_
 
@@ -149,8 +159,14 @@ for it, images_b in tqdm.tqdm(enumerate(test_loader_b), total=breakpoint):
     print(gen_image.shape)
     continue
 
-  save_merged_image(resized_image, coords, images_b_, os.path.join(output_directory, 'original', image_name))
-  save_merged_image(resized_image, coords, blended, os.path.join(output_directory, 'blended', image_name))
+  gen_images_b_ = save_merged_image(resized_image, coords, images_b_, os.path.join(output_directory, 'original', image_name))
+  gen_blended = save_merged_image(resized_image, coords, blended, os.path.join(output_directory, 'blended', image_name))
+  compare = np.concatenate([gen_images_b_, np.ones((gen_images_b_.shape[0],10)), gen_blended], 1)
+
+  compare = np.clip(compare * 255, 0, 255).astype('uint8')
+  im = Image.fromarray(compare)
+  im.save(os.path.join(output_directory, 'debug', image_name))
+
   if opts.debug:
     # Save original images with patches drawn over it (debug mode)
     fig, axs = plt.subplots(1)

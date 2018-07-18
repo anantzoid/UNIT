@@ -71,11 +71,14 @@ def get_test_data_loaders(conf, shuffle_force=False):
 
 
 def get_data_loader_folder(input_folder, batch_size, train, new_size=None,
-                           height=256, width=256, num_workers=4, crop=True, shuffle_force=False):
-    transform_list = [transforms.ToTensor()]
-    transform_list = [transforms.ToTensor(),
-                      transforms.Normalize((0.5, 0.5, 0.5),
-                                           (0.5, 0.5, 0.5))]
+                           height=256, width=256, num_workers=4, crop=True, shuffle_force=False,
+                           normalize=True):
+    if not train:
+      transform_list = [transforms.ToTensor()]
+    else:
+      transform_list = [transforms.ToTensor(),
+                        transforms.Normalize((0.5, 0.5, 0.5),
+                                            (0.5, 0.5, 0.5))]
     transform_list = [transforms.RandomCrop((height, width))] + transform_list if crop else transform_list
     transform_list = [transforms.Resize((new_size, new_size))] + transform_list if new_size is not None else transform_list
     transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
