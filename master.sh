@@ -35,3 +35,7 @@
 #0712
 #eval 
 #python eval.py --gpu 2 --config /data2/unit/0705/outputs/0705humerus_border_lessadv/config.yaml --model_path /data2/unit/0705/outputs/0705humerus_border_lessadv/checkpoints/gen_00170000.pkl
+
+#0718
+#gen merged/blended image
+#python eval.py --gpu 3 --config /data2/unit/outputs/0709humerus/config.yaml --model_path /data2/unit/outputs/lesion_0621humerus/checkpoints/gen_00040000.pkl

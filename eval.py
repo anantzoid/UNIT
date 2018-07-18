@@ -34,7 +34,7 @@ opts = parser.parse_args()
 if opts.model_path == '':
   assert "Need model path"
 
-breakpoint = 600
+breakpoint = 100
 
 torch.cuda.set_device(opts.gpu)
 
@@ -59,7 +59,7 @@ print("output dir:", output_directory)
 if not os.path.exists(output_directory):
   os.makedirs(output_directory)
 
-for d in ['gen', 'original', 'debug']:
+for d in ['gen', 'original', 'debug', 'blended']:
   d = os.path.join(output_directory, d)
   if not os.path.exists(d):
     os.makedirs(d)
@@ -95,6 +95,22 @@ def im_trans(image_output):
   image_output = np_norm_im(image_output)#, minmax[0], minmax[1])
   return image_output
 
+def save_merged_image(resized_image, coords, patch, save_dir):
+  gen_image = np.copy(resized_image)
+  gen_image[coords['sy']:coords['ey'], coords['sx']: coords['ex']] = patch
+  gen_image = np.clip(gen_image * 255, 0, 255).astype('uint8')
+  im = Image.fromarray(gen_image)
+  im.save(save_dir)
+
+def getmask():
+  mesh = np.linspace(-1,1,256)
+  x, y = np.meshgrid(mesh, mesh)
+  constant = 0.5 * np.pi
+  mask = np.cos(constant * x) * np.cos(constant * y)
+  alpha = 1-mask
+  return alpha
+alpha = getmask()
+
 for it, images_b in tqdm.tqdm(enumerate(test_loader_b), total=breakpoint):
   images_b, image_path, image_size = images_b
   images_b = Variable(images_b.cuda(), volatile=True)
@@ -119,10 +135,11 @@ for it, images_b in tqdm.tqdm(enumerate(test_loader_b), total=breakpoint):
   images_b_ = im_trans(images_b)
   resized_image = np_norm_im(resized_image)
 
+  blended = (1-alpha)*image_output_ + alpha*images_b_
+
   # Temporary skip over a bug that arises from miscalcualted coordinates
   try:
-    gen_image = np.copy(resized_image)
-    gen_image[coords['sy']:coords['ey'], coords['sx']: coords['ex']] = image_output_
+    save_merged_image(resized_image, coords, image_output_, os.path.join(output_directory, 'gen', image_name))
   except Exception as e:
     print(str(e))
     print(images_b.size())
@@ -131,16 +148,9 @@ for it, images_b in tqdm.tqdm(enumerate(test_loader_b), total=breakpoint):
     print(coords)
     print(gen_image.shape)
     continue
-  gen_image = np.clip(gen_image * 255, 0, 255).astype('uint8')
-  im = Image.fromarray(gen_image)
-  im.save(os.path.join(output_directory, 'gen', image_name))
 
-  gen_image = np.copy(resized_image)
-  gen_image[coords['sy']:coords['ey'], coords['sx']: coords['ex']] = images_b_
-  gen_image = np.clip(gen_image * 255, 0, 255).astype('uint8')
-  im = Image.fromarray(gen_image)
-  im.save(os.path.join(output_directory, 'original', image_name))
-
+  save_merged_image(resized_image, coords, images_b_, os.path.join(output_directory, 'original', image_name))
+  save_merged_image(resized_image, coords, blended, os.path.join(output_directory, 'blended', image_name))
   if opts.debug:
     # Save original images with patches drawn over it (debug mode)
     fig, axs = plt.subplots(1)
