@@ -36,7 +36,7 @@ opts = parser.parse_args()
 if opts.model_path == '':
   assert "Need model path"
 
-breakpoint = 100
+breakpoint = 2550
 
 torch.cuda.set_device(opts.gpu)
 
@@ -149,19 +149,26 @@ for it, images_b in tqdm.tqdm(enumerate(test_loader_b), total=breakpoint):
 
   # Temporary skip over a bug that arises from miscalcualted coordinates
   try:
-    save_merged_image(resized_image, coords, image_output_, os.path.join(output_directory, 'gen', image_name))
+    gen_output_ = save_merged_image(resized_image, coords, image_output_, os.path.join(output_directory, 'gen', image_name))
   except Exception as e:
+    '''
     print(str(e))
     print(images_b.size())
     print(image_output.size())
     print(image_output_.shape)
     print(coords)
     print(gen_image.shape)
+    '''
     continue
 
   gen_images_b_ = save_merged_image(resized_image, coords, images_b_, os.path.join(output_directory, 'original', image_name))
   gen_blended = save_merged_image(resized_image, coords, blended, os.path.join(output_directory, 'blended', image_name))
-  compare = np.concatenate([gen_images_b_, np.ones((gen_images_b_.shape[0],10)), gen_blended], 1)
+  compare = np.concatenate([
+      gen_images_b_, 
+      np.ones((gen_images_b_.shape[0],10)),
+      gen_blended,
+      np.ones((gen_images_b_.shape[0],10)),
+      gen_output_], 1)
 
   compare = np.clip(compare * 255, 0, 255).astype('uint8')
   im = Image.fromarray(compare)
