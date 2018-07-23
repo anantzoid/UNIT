@@ -5,6 +5,7 @@ from trainer import UNIT_Trainer
 import torch
 import torchvision
 import os
+import torchvision.transforms.functional as F
 
 import numpy as np
 from skimage import transform
@@ -25,7 +26,8 @@ def generate_samples(opts):
   print(im_save_path)
   test_loader_b = get_test_data_loaders(config)
 
-  data_samples = [Variable(test_loader_b.dataset[i][0].cuda(), volatile=True) for i in range(opts.samples[0], opts.samples[1], )]
+  mean, std = (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
+  data_samples = [Variable(F.normalize(test_loader_b.dataset[i][0], mean, std).cuda(), volatile=True) for i in range(opts.samples[0], opts.samples[1], )]
   epochs = [i for i in range(opts.epoch_limit[0], opts.epoch_limit[1]+1, opts.epoch_interval)] 
   all_gens = [torch.stack([i.data.cpu() for i in data_samples])]
 
