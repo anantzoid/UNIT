@@ -111,8 +111,10 @@ class COCOResGen2(nn.Module):
       decB += [INSResBlock(tch, tch, dropout=res_dropout_ratio)]
     # Convolutional back-end
     for i in range(0, n_gen_front_blk-1):
-      decA += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=3, stride=2, padding=1, output_padding=1)]
-      decB += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=3, stride=2, padding=1, output_padding=1)]
+      #decA += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=3, stride=2, padding=1, output_padding=1)]
+      #decB += [LeakyReLUConvTranspose2d(tch, tch//2, kernel_size=3, stride=2, padding=1, output_padding=1)]
+      decA += [LeakyReLUpsampleConv2dBN(tch, tch//2, kernel_size=3, stride=1, padding=1)]
+      decB += [LeakyReLUpsampleConv2dBN(tch, tch//2, kernel_size=3, stride=1, padding=1)]
       tch = tch//2
     decA += [nn.ConvTranspose2d(tch, input_dim_a, kernel_size=1, stride=1, padding=0)]
     decB += [nn.ConvTranspose2d(tch, input_dim_b, kernel_size=1, stride=1, padding=0)]

@@ -39,3 +39,8 @@
 #0718
 #gen merged/blended image
 #python eval.py --gpu 3 --config /data2/unit/outputs/0709humerus/config.yaml --model_path /data2/unit/outputs/lesion_0621humerus/checkpoints/gen_00040000.pkl
+
+#0724
+#gan->10, step_size->50k, more augmentations
+#python train.py --config configs/0723crop.yaml --output_path /data2/unit/ --gpu 0
+#python train.py --config configs/0723humerus.yaml --output_path /data2/unit/ --gpu 1
