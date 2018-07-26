@@ -39,3 +39,6 @@
 #0718
 #gen merged/blended image
 #python eval.py --gpu 3 --config /data2/unit/outputs/0709humerus/config.yaml --model_path /data2/unit/outputs/lesion_0621humerus/checkpoints/gen_00040000.pkl
+
+
+python eval.py --gpu 3 --config /data2/unit/outputs/0709humerus/config.yaml --model_path /data2/unit/outputs/0709humerus_merged/checkpoints/gen_00035000.pkl --patch_compare

@@ -29,6 +29,7 @@ parser.add_argument('--gpu', type=int, help="gpu id", default=0)
 parser.add_argument('--config', type=str, default='configs/lesion.yaml', help='Path to the config file.')
 parser.add_argument('--output_path', type=str, default='/data2/unit', help="outputs path")
 parser.add_argument('--model_path', type=str, default='', help="model path")
+parser.add_argument('--patch_compare', action='store_true', help="This option saves before and after patches.")
 
 parser.add_argument('--debug', action="store_true")
 opts = parser.parse_args()
@@ -36,7 +37,7 @@ opts = parser.parse_args()
 if opts.model_path == '':
   assert "Need model path"
 
-breakpoint = 2550
+breakpoint = 600
 
 torch.cuda.set_device(opts.gpu)
 
@@ -61,6 +62,7 @@ output_directory = os.path.join(opts.output_path + "/evaluation_unit", "%s_%s_%s
                             ts))
 print("output dir:", output_directory)
 
+'''
 if not os.path.exists(output_directory):
   os.makedirs(output_directory)
 
@@ -69,6 +71,7 @@ for d in ['gen', 'original', 'debug', 'blended']:
   if not os.path.exists(d):
     os.makedirs(d)
 
+'''
 def np_norm_im(img):
   return img*0.5 + 0.5
   min, max = float(np.min(img)), float(np.max(img))
@@ -130,6 +133,16 @@ for it, images_b in tqdm.tqdm(enumerate(test_loader_b), total=breakpoint):
   
   dicomId = image_name.split(".")[0]
   image_name_original = "%s.png"%dicomId.split("_")[0]
+
+  if opts.patch_compare:
+    __ = torch.cat((images_b, image_output), 3)
+    pp_im = im_trans(__)#.transpose(0,1).transpose(1,2)
+
+    plt.imsave(os.path.join("/data2/translate_compare",image_name_original), pp_im, cmap='gray') 
+    if it >= breakpoint:
+      break
+    continue
+
   # NOTE PIL reader leads to a contrast difference. pyplot seems to work fine.
   #orig_image = np.array(default_loader(os.path.join(config['img_dir'], image_name_original), True))
   orig_image = plt.imread(os.path.join(config['img_dir'], image_name_original))
