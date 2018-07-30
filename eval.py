@@ -57,21 +57,20 @@ test_loader_b = get_test_data_loaders(config, shuffle_force=True)
 base_path = opts.model_path.split("/")
 model_name = base_path[-3]#os.path.splitext(os.path.basename(opts.config))[0]
 ts = str(datetime.now()).split(".")[0].replace(" ", "_")
-output_directory = os.path.join(opts.output_path + "/evaluation_unit", "%s_%s_%s_%s"%(config['data_root'].rstrip("/").split("/")[-1],
-                            model_name, base_path[-1].split(".")[0].split("_")[-1],
-                            ts))
-print("output dir:", output_directory)
+if not opts.patch_compare:
+  output_directory = os.path.join(opts.output_path + "/evaluation_unit", "%s_%s_%s_%s"%(config['data_root'].rstrip("/").split("/")[-1],
+                              model_name, base_path[-1].split(".")[0].split("_")[-1],
+                              ts))
+  print("output dir:", output_directory)
 
-'''
-if not os.path.exists(output_directory):
-  os.makedirs(output_directory)
+  if not os.path.exists(output_directory):
+    os.makedirs(output_directory)
 
-for d in ['gen', 'original', 'debug', 'blended']:
-  d = os.path.join(output_directory, d)
-  if not os.path.exists(d):
-    os.makedirs(d)
+  for d in ['gen', 'original', 'debug', 'blended']:
+    d = os.path.join(output_directory, d)
+    if not os.path.exists(d):
+      os.makedirs(d)
 
-'''
 def np_norm_im(img):
   return img*0.5 + 0.5
   min, max = float(np.min(img)), float(np.max(img))
@@ -164,14 +163,11 @@ for it, images_b in tqdm.tqdm(enumerate(test_loader_b), total=breakpoint):
   try:
     gen_output_ = save_merged_image(resized_image, coords, image_output_, os.path.join(output_directory, 'gen', image_name))
   except Exception as e:
-    '''
     print(str(e))
     print(images_b.size())
     print(image_output.size())
     print(image_output_.shape)
     print(coords)
-    print(gen_image.shape)
-    '''
     continue
 
   gen_images_b_ = save_merged_image(resized_image, coords, images_b_, os.path.join(output_directory, 'original', image_name))
