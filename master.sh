@@ -40,5 +40,9 @@
 #gen merged/blended image
 #python eval.py --gpu 3 --config /data2/unit/outputs/0709humerus/config.yaml --model_path /data2/unit/outputs/lesion_0621humerus/checkpoints/gen_00040000.pkl
 
+#python eval.py --gpu 3 --config /data2/unit/outputs/0709humerus/config.yaml --model_path /data2/unit/outputs/0709humerus_merged/checkpoints/gen_00035000.pkl --patch_compare
 
-python eval.py --gpu 3 --config /data2/unit/outputs/0709humerus/config.yaml --model_path /data2/unit/outputs/0709humerus_merged/checkpoints/gen_00035000.pkl --patch_compare
+# other exps in merged2 branch
+
+#0730
+#python train.py --config configs/0730_femur.yaml --output_path /data2/unit/ --gpu 0
