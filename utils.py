@@ -64,6 +64,7 @@ def get_test_data_loaders(conf, shuffle_force=False):
     height = conf['crop_image_height']
     width = conf['crop_image_width']
 
+    #test_loader_b = get_data_loader_folder(os.path.join("/data2/generative/0730humerus", 'testB'), batch_size, False,
     test_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'testB'), batch_size, False,
                                     new_size_b, new_size_b, new_size_b, num_workers, False, shuffle_force)
     return test_loader_b

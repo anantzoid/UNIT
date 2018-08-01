@@ -46,3 +46,9 @@
 
 #0730
 #python train.py --config configs/0730_femur.yaml --output_path /data2/unit/ --gpu 0
+#python train.py --config configs/0730_humerus.yaml --output_path /data2/unit/ --gpu 3
+
+#0731
+python train.py --config configs/0730_tibia.yaml --output_path /data2/unit/ --gpu 1
+python train.py --config configs/0731_humerus_tibia_femur.yaml --output_path /data2/unit/ --gpu 1
+#python train.py --config configs/0730_humerus_crop.yaml --output_path /data2/unit/ --gpu 3

@@ -27,7 +27,7 @@ from PIL import Image
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, help="gpu id", default=0)
 parser.add_argument('--config', type=str, default='configs/lesion.yaml', help='Path to the config file.')
-parser.add_argument('--output_path', type=str, default='/data2/unit', help="outputs path")
+parser.add_argument('--output_path', type=str, default='/data2/unit/evaluation_unit', help="outputs path")
 parser.add_argument('--model_path', type=str, default='', help="model path")
 parser.add_argument('--patch_compare', action='store_true', help="This option saves before and after patches.")
 
@@ -37,7 +37,7 @@ opts = parser.parse_args()
 if opts.model_path == '':
   assert "Need model path"
 
-breakpoint = 600
+breakpoint = 800
 
 torch.cuda.set_device(opts.gpu)
 
@@ -58,7 +58,9 @@ base_path = opts.model_path.split("/")
 model_name = base_path[-3]#os.path.splitext(os.path.basename(opts.config))[0]
 ts = str(datetime.now()).split(".")[0].replace(" ", "_")
 if not opts.patch_compare:
-  output_directory = os.path.join(opts.output_path + "/evaluation_unit", "%s_%s_%s_%s"%(config['data_root'].rstrip("/").split("/")[-1],
+  if not os.path.exists(opts.output_path):
+    os.makedirs(opts.output_path)
+  output_directory = os.path.join(opts.output_path + "/%s_%s_%s_%s"%(config['data_root'].rstrip("/").split("/")[-1],
                               model_name, base_path[-1].split(".")[0].split("_")[-1],
                               ts))
   print("output dir:", output_directory)
@@ -116,6 +118,7 @@ def getmask():
   x, y = np.meshgrid(mesh, mesh)
   constant = 0.5 * np.pi
   mask = np.cos(constant * x) * np.cos(constant * y)
+  #mask = np.cos(constant * np.abs(x)**0.7) * np.cos(constant * np.abs(y)**0.7)
   alpha = 1-mask
   return alpha
 alpha = getmask()
