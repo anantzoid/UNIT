@@ -27,7 +27,7 @@ from PIL import Image
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, help="gpu id", default=0)
 parser.add_argument('--config', type=str, default='configs/lesion.yaml', help='Path to the config file.')
-parser.add_argument('--output_path', type=str, default='/data2/unit/evaluation_unit', help="outputs path")
+parser.add_argument('--output_path', type=str, default='/data2/unit/eval_unit_new', help="outputs path")
 parser.add_argument('--model_path', type=str, default='', help="model path")
 parser.add_argument('--patch_compare', action='store_true', help="This option saves before and after patches.")
 
@@ -37,7 +37,7 @@ opts = parser.parse_args()
 if opts.model_path == '':
   assert "Need model path"
 
-breakpoint = 800
+breakpoint = 10000
 
 torch.cuda.set_device(opts.gpu)
 
@@ -56,7 +56,7 @@ test_loader_b = get_test_data_loaders(config, shuffle_force=True)
 # Setup logger and output folders
 base_path = opts.model_path.split("/")
 model_name = base_path[-3]#os.path.splitext(os.path.basename(opts.config))[0]
-ts = str(datetime.now()).split(".")[0].replace(" ", "_")
+ts = str(datetime.now()).split(".")[0].replace(" ", "_").replace(":", "-")
 if not opts.patch_compare:
   if not os.path.exists(opts.output_path):
     os.makedirs(opts.output_path)
@@ -147,13 +147,16 @@ for it, images_b in tqdm.tqdm(enumerate(test_loader_b), total=breakpoint):
 
   # NOTE PIL reader leads to a contrast difference. pyplot seems to work fine.
   #orig_image = np.array(default_loader(os.path.join(config['img_dir'], image_name_original), True))
-  orig_image = plt.imread(os.path.join(config['img_dir'], image_name_original))
 
   if "_" not in dicomId:
     dicomId = "%s_0"%dicomId
+
+  if dicomId not in patch_metadata:
+    continue
   coords = patch_metadata[dicomId]['patch']
   target_size = patch_metadata[dicomId]['target_size']
  
+  orig_image = plt.imread(os.path.join(config['img_dir'], image_name_original))
   resized_image, coords = resize_image_by_crop(orig_image, coords, target_size) 
   
   image_output_ = im_trans(image_output)

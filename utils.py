@@ -16,6 +16,7 @@ import torchvision.utils as vutils
 import yaml
 import numpy as np
 import torch.nn.init as init
+import collections
 # Methods
 # get_all_data_loaders      : primary data loader interface (load trainA, testA, trainB, testB)
 # get_data_loader_list      : list-based data loader
@@ -80,9 +81,11 @@ def get_data_loader_folder(input_folder, batch_size, train, new_size=None,
       transform_list = [transforms.ToTensor(),
                         transforms.Normalize((0.5, 0.5, 0.5),
                                             (0.5, 0.5, 0.5))]
-    transform_list = [transforms.RandomCrop((height, width))] + transform_list if crop else transform_list
+    #transform_list = [transforms.RandomCrop((height, width))] + transform_list if crop else transform_list
     transform_list = [transforms.Resize((new_size, new_size))] + transform_list if new_size is not None else transform_list
-    transform_list = [transforms.RandomHorizontalFlip()] + transform_list if train else transform_list
+    if train:
+      transform_list = [transforms.RandomHorizontalFlip()] + transform_list
+      transform_list = [transforms.RandomRotation((-30,30))] + transform_list
     transform = transforms.Compose(transform_list)
     dataset = ImageFolder(input_folder, transform=transform, test=not(train))
     if shuffle_force is True:

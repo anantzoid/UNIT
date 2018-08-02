@@ -52,3 +52,12 @@
 python train.py --config configs/0730_tibia.yaml --output_path /data2/unit/ --gpu 1
 python train.py --config configs/0731_humerus_tibia_femur.yaml --output_path /data2/unit/ --gpu 1
 #python train.py --config configs/0730_humerus_crop.yaml --output_path /data2/unit/ --gpu 3
+
+#0801
+python eval.py --gpu 2 --config /data2/unit/outputs/0709humerus/config.yaml --model_path /data2/unit/outputs/0705humerus/checkpoints/gen_00044000.pkl
+#re-train humerus on older dataset with augmentation
+python train.py --config configs/0801_humerus.yaml --output_path /data2/unit/ --gpu 0
+
+#0802
+python eval.py --gpu 2 --config configs/0801_humerus.yaml --model_path /data2/unit/outputs/0801_humerus/checkpoints/gen_00050000.pkl
+
