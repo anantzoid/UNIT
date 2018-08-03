@@ -17,6 +17,11 @@ import yaml
 import numpy as np
 import torch.nn.init as init
 import collections
+
+import cv2
+from PIL import Image
+from scipy.ndimage.interpolation import map_coordinates
+from scipy.ndimage.filters import gaussian_filter
 # Methods
 # get_all_data_loaders      : primary data loader interface (load trainA, testA, trainB, testB)
 # get_data_loader_list      : list-based data loader
@@ -47,10 +52,15 @@ def get_train_data_loaders(conf):
     height = conf['crop_image_height']
     width = conf['crop_image_width']
 
+    if 'elastic' in conf.keys() and conf['elastic'] == 1:
+      ed = True
+    else:
+      ed = False
+
     train_loader_a = get_data_loader_folder(os.path.join(conf['data_root'], 'trainA'), batch_size, True,
-                                          new_size_a, height, width, num_workers, False)
+                                          new_size_a, height, width, num_workers, False, ed=ed)
     train_loader_b = get_data_loader_folder(os.path.join(conf['data_root'], 'trainB'), batch_size, True,
-                                          new_size_b, height, width, num_workers, False)
+                                          new_size_b, height, width, num_workers, False, ed=ed)
     return train_loader_a, train_loader_b
 
 
@@ -74,7 +84,7 @@ def get_test_data_loaders(conf, shuffle_force=False):
 
 def get_data_loader_folder(input_folder, batch_size, train, new_size=None,
                            height=256, width=256, num_workers=4, crop=True, shuffle_force=False,
-                           normalize=True):
+                           normalize=True, ed=False):
     if not train:
       transform_list = [transforms.ToTensor()]
     else:
@@ -84,8 +94,14 @@ def get_data_loader_folder(input_folder, batch_size, train, new_size=None,
     #transform_list = [transforms.RandomCrop((height, width))] + transform_list if crop else transform_list
     transform_list = [transforms.Resize((new_size, new_size))] + transform_list if new_size is not None else transform_list
     if train:
+      if ed is True:  
+        ed = ElasticDistortion((new_size, new_size), new_size*2, new_size/4, new_size*0.08)
+        transform_list = [ed] + transform_list
+
       transform_list = [transforms.RandomHorizontalFlip()] + transform_list
       transform_list = [transforms.RandomRotation((-30,30))] + transform_list
+      
+
     transform = transforms.Compose(transform_list)
     dataset = ImageFolder(input_folder, transform=transform, test=not(train))
     if shuffle_force is True:
@@ -282,3 +298,31 @@ def weights_init(init_type='gaussian'):
                 init.constant(m.bias.data, 0.0)
 
     return init_fun
+
+
+class ElasticDistortion(object):
+  def __init__(self, target_size, alpha, sigma, alpha_affine):
+    self.target_size = target_size
+    self.alpha = alpha
+    self.sigma = sigma
+    self.alpha_affine = alpha_affine
+    # Random affine
+    center_square = np.float32(self.target_size) // 2
+    square_size = min(self.target_size) // 3
+    self.pts1 = np.float32([center_square + square_size, [center_square[0]+square_size, center_square[1]-square_size], center_square - square_size])
+    self.shift_h, self.shift_w = np.array(self.target_size) / 2.0
+
+  def __call__(self, image):
+    image = np.mean(np.asarray(image), 2)
+    pts2 = self.pts1 + np.random.uniform(-self.alpha_affine, self.alpha_affine, size=self.pts1.shape).astype(np.float32)
+    M = cv2.getAffineTransform(self.pts1, pts2)
+    image = cv2.warpAffine(image, M, self.target_size[::-1], borderMode=cv2.BORDER_CONSTANT)
+
+    dx = gaussian_filter((np.random.rand(*self.target_size) * 2 - 1), self.sigma) * self.alpha
+    dy = gaussian_filter((np.random.rand(*self.target_size) * 2 - 1), self.sigma) * self.alpha
+
+    x, y = np.meshgrid(np.arange(self.target_size[1]), np.arange(self.target_size[0]))
+    indices = np.reshape(y+dy, (-1, 1)), np.reshape(x+dx, (-1, 1))
+
+    _im = map_coordinates(image, indices, order=1, mode='reflect').reshape(self.target_size)
+    return Image.fromarray(np.uint8(_im)).convert('RGB')
