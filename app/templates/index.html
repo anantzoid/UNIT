@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+  <head>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.4.1/cropper.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.4.1/cropper.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+  .img-container {
+      width: 1024px;
+      height: 100%;
+    }
+    img {
+      max-width: 100%;
+    }
+
+		/*Loader Style Starts */
+   .loader {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 120px;
+      height: 120px;
+      margin: -75px 0 0 -75px;
+      border: 16px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 16px solid #3498db;
+      width: 120px;
+      height: 120px;
+      -webkit-animation: spin 2s linear infinite;
+      animation: spin 2s linear infinite;
+      /*display: none;*/
+    }
+
+    .loader-overlay {
+      content: '';
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.3);
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    } 
+
+		/*Loader Style Ends */
+		/*Modal Style Starts */
+
+    .modal {
+      display: block; /* Hidden by default */
+      position: fixed; /* Stay in place */
+      z-index: 1; /* Sit on top */
+      left: 0;
+      top: 0;
+      width: 100%; /* Full width */
+      height: 100%; /* Full height */
+      overflow: auto; /* Enable scroll if needed */
+      background-color: rgb(0,0,0); /* Fallback color */
+      background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    }
+
+		.modal-header {
+			padding: 2px 16px;
+			background-color: #5cb85c;
+			color: white;
+			margin-top: -4px;
+			margin-bottom: 40px;
+		}
+    h2 {
+      margin: -3px 0 30px 0;
+    }
+
+    /* Modal Content/Box */
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto; /* 15% from the top and centered */
+      padding: 20px;
+      border: 1px solid #888;
+      width: 25%; /* Could be more or less, depending on screen size */
+			border-radius: 6px;
+    }
+
+		.close {
+			color: #aaa;
+			float: right;
+			font-size: 28px;
+			font-weight: bold;
+		}
+
+		.close:hover,
+		.close:focus {
+			color: black;
+			text-decoration: none;
+			cursor: pointer;
+		}	
+	/*Modal Style Ends */
+
+  </style>
+  </head>
+  <body>
+    <div class="img-container">
+      <img id="main-img" src={{img_path}} />
+      <div class="loader-overlay"><div class="loader"></div></div>
+			<div id="myModal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+		<div class="model-header">
+			<span class="close">&times;</span>
+			<h2>Bone Lesion Generator Demo</h2>
+		</div>
+		<h4>Quick Guide</h4>
+		<ul>
+			<li>Drage cropper to select patch</li>
+			<li>Hit Enter to generate Bone Lesion</li>
+			<li>Hit Enter to fetch next image</li>
+		</ul>
+  </div>
+
+</div>
+    </div>
+    
+  <script>
+  $(function() {
+    var status = 'off';
+    function initCropper() {
+      var image = document.getElementById("main-img");
+      var cropper = new Cropper(image, {
+        aspectRatio: 1 / 1,
+        cropBoxResizable: false,
+        zoomable: false,
+        dragMode: false,
+        viewMode: 1,
+        ready: function () {
+          //cropper("setCropBoxData", { width: "256", height: "256" });
+          cropper.setCropBoxData({width: 256, height: 256}).getCropBoxData();
+        },
+        crop(event) {
+          console.log(event.detail.x);
+          console.log(event.detail.y);
+        },
+      });
+      return cropper;
+    }
+    function fetchNextImage() {
+      $.ajax({
+        url: '/getimg',
+        success: function(response) {
+          $("img").attr("src", response.img);
+          $(".loader-overlay").hide()  
+          cropper = initCropper();
+        } 
+      });
+    }
+
+    var cropper = initCropper();
+    $(document).keypress(function(e) {
+      if (e.which == 13) {
+        if(status == 'on') {
+            $(".loader-overlay").show()  
+            fetchNextImage();
+
+            status = 'off';
+          } else {
+            var data = cropper.getData(true)
+            $(".loader-overlay").show()  
+            cropper.destroy()
+
+            $.ajax({
+              url: '/coords',
+              type: 'get',
+              data: {
+                x: data.x,
+                y: data.y
+              },
+              success: function(response) {
+                console.log(response);      
+                //change image
+                $("img").attr("src", response.img);
+                $(".loader-overlay").hide()  
+                status = 'on';
+              },
+              error: function(response) {
+                alert("something went wrong");
+              }
+            });
+          }
+        }
+    });
+
+		$(".modal").click(function(event) {
+			$(".modal").hide();	
+		});
+  });
+  </script>
+  </body>
+
+</html>
