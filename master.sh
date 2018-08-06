@@ -62,5 +62,18 @@ python train.py --config configs/0801_humerus.yaml --output_path /data2/unit/ --
 python eval.py --gpu 2 --config configs/0801_humerus.yaml --model_path /data2/unit/outputs/0801_humerus/checkpoints/gen_00050000.pkl
 
 #0803
-python train.py --config configs/0803_humerus_ed.yaml --output_path /data2/unit/ --gpu 3
+python train.py --config configs/0803_humerus_ed.yaml --output_path /data2/unit/ --gpu 0
 python train.py --config configs/0803_femur.yaml --output_path /data2/unit/ --gpu 3
+
+#0804
+python train.py --config configs/0803_tibia.yaml --output_path /data2/unit/ --gpu 1
+python train.py --config configs/0804_mixture.yaml --output_path /data2/unit/ --gpu 0
+
+#0806
+# except humerus, all other exps seem to just reconstruct. Test humuers again
+python train.py --config configs/0806_humerus_check.yaml --output_path /data2/unit/ --gpu 0
+
+#translations to maximize psuedolabellin
+python eval.py --gpu 2  --model_path /data2/unit/outputs/0801_humerus/checkpoints/gen_00050000.pkl  --config configs/0801_humerus.yaml --data_root /data2/generative/0804femur_testset/
+
+python train.py --config configs/0806_tibia_crop.yaml --output_path /data2/unit/ --gpu 1

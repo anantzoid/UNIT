@@ -95,7 +95,7 @@ def get_data_loader_folder(input_folder, batch_size, train, new_size=None,
     transform_list = [transforms.Resize((new_size, new_size))] + transform_list if new_size is not None else transform_list
     if train:
       if ed is True:  
-        ed = ElasticDistortion((new_size, new_size), new_size*2, new_size/4, new_size*0.08)
+        ed = ElasticDistortion((new_size, new_size), new_size*2, new_size/3, new_size*0.08)
         transform_list = [ed] + transform_list
 
       transform_list = [transforms.RandomHorizontalFlip()] + transform_list

@@ -31,6 +31,7 @@ parser.add_argument('--output_path', type=str, default='/data2/unit/eval_unit_ne
 parser.add_argument('--model_path', type=str, default='', help="model path")
 parser.add_argument('--patch_compare', action='store_true', help="This option saves before and after patches.")
 
+parser.add_argument('--data_root', type=str, default='', help="data path")
 parser.add_argument('--debug', action="store_true")
 opts = parser.parse_args()
 
@@ -43,6 +44,10 @@ torch.cuda.set_device(opts.gpu)
 
 # Load experiment setting
 config = get_config(opts.config)
+
+if opts.data_root != '':
+  config['data_root'] = opts.data_root
+
 patch_metadata = json.load(open(os.path.join(config['data_root'], 'gendata_metadata.json'))) 
 #config['data_root'] = opts.data_root
 
