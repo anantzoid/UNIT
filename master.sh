@@ -77,3 +77,9 @@ python train.py --config configs/0806_humerus_check.yaml --output_path /data2/un
 python eval.py --gpu 2  --model_path /data2/unit/outputs/0801_humerus/checkpoints/gen_00050000.pkl  --config configs/0801_humerus.yaml --data_root /data2/generative/0804femur_testset/
 
 python train.py --config configs/0806_tibia_crop.yaml --output_path /data2/unit/ --gpu 1
+
+#0807
+python eval.py --gpu 2 --output_path /data2/unit/0730sets --model_path /data2/unit/outputs/0806_tibia_crop/checkpoints/gen_00090000.pkl  --config /data2/unit/outputs/0806_tibia_crop/config.yaml --data_root /data2/generative/0806tibia_testset/
+
+
+
