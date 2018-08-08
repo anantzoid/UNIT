@@ -59,6 +59,11 @@ def getimg():
   img_path = src_ims[session['im_counter']]
   return jsonify({"img": img_path})
 
+@app.route("/reset")
+def resetimg():
+  img_path = src_ims[session['im_counter']]
+  return jsonify({"img": img_path})
+   
 @app.route("/coords")
 def getCoords():
   coords = {

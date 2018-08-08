@@ -84,7 +84,7 @@
       margin: 15% auto; /* 15% from the top and centered */
       padding: 20px;
       border: 1px solid #888;
-      width: 25%; /* Could be more or less, depending on screen size */
+      width: 400px; /* Could be more or less, depending on screen size */
 			border-radius: 6px;
     }
 
@@ -101,31 +101,71 @@
 			text-decoration: none;
 			cursor: pointer;
 		}	
+    li { line-height: 1.5; }
 	/*Modal Style Ends */
+
+	.header {
+    z-index: 0;
+    width: 100%;
+    height: 80px;
+    margin: 0 auto;
+    background-color: white;
+    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.25);
+}
+.title { 
+		float: right;
+    font-size: 30px;
+    margin-right: 40px;
+    height: 24px;
+    margin-top: 25px;
+    margin-bottom: 28px;
+    letter-spacing: 3px;
+}
+.container {
+    position: relative;
+    margin: 0 10%;
+    height: 100%;
+}
+.header .Logo-Imagen {
+    float: left;
+    width: 217px;
+    height: 24px;
+    margin-top: 28px;
+    margin-bottom: 28px;
+}
 
   </style>
   </head>
   <body>
+  
+	<div class="header">
+    <div class="container">
+      <a class="Logo-Imagen" href="/"><img src="https://imagen.ai/43637d59592d9f5528de696a3d01319c.svg"></a>
+      <div class="title">Bone Lesion Generator</div>
+	
+	</div></div>
+
     <div class="img-container">
       <img id="main-img" src={{img_path}} />
       <div class="loader-overlay"><div class="loader"></div></div>
 			<div id="myModal" class="modal">
 
-  <!-- Modal content -->
-  <div class="modal-content">
-		<div class="model-header">
-			<span class="close">&times;</span>
-			<h2>Bone Lesion Generator Demo</h2>
-		</div>
-		<h4>Quick Guide</h4>
-		<ul>
-			<li>Drage cropper to select patch</li>
-			<li>Hit Enter to generate Bone Lesion</li>
-			<li>Hit Enter to fetch next image</li>
-		</ul>
-  </div>
+			<!-- Modal content -->
+			<div class="modal-content">
+				<div class="model-header">
+					<span class="close">&times;</span>
+					<h2>Bone Lesion Generator Demo</h2>
+				</div>
+				<h4>Quick Guide</h4>
+				<ul>
+					<li>Drage cropper to select patch</li>
+					<li>Hit Enter to generate Bone Lesion</li>
+					<li>Hit Enter to fetch next image</li>
+					<li>Hit Esc to reset the image</li>
+				</ul>
+			</div>
 
-</div>
+		</div>
     </div>
     
   <script>
@@ -150,25 +190,25 @@
       });
       return cropper;
     }
-    function fetchNextImage() {
+    function fetchNextImage(url) {
+      $(".loader-overlay").show()  
       $.ajax({
-        url: '/getimg',
+        url: url,
         success: function(response) {
-          $("img").attr("src", response.img);
+          $("#main-img").attr("src", response.img);
           $(".loader-overlay").hide()  
           cropper = initCropper();
         } 
       });
+      status = 'off';
     }
 
     var cropper = initCropper();
-    $(document).keypress(function(e) {
+    $(document).on('keyup', function(e) {
+      console.log(e.which);
       if (e.which == 13) {
         if(status == 'on') {
-            $(".loader-overlay").show()  
-            fetchNextImage();
-
-            status = 'off';
+            fetchNextImage('/getimg');
           } else {
             var data = cropper.getData(true)
             $(".loader-overlay").show()  
@@ -184,7 +224,7 @@
               success: function(response) {
                 console.log(response);      
                 //change image
-                $("img").attr("src", response.img);
+                $("#main-img").attr("src", response.img);
                 $(".loader-overlay").hide()  
                 status = 'on';
               },
@@ -193,7 +233,11 @@
               }
             });
           }
+      } else if (e.which == 27) {
+        if(status == 'on') {
+          fetchNextImage('/reset');
         }
+      }
     });
 
 		$(".modal").click(function(event) {
