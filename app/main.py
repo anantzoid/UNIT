@@ -40,9 +40,9 @@ def getmask():
   return alpha
 
 alpha = getmask()
-img_path = "static/humerus"
+img_path = "static/humerus_new"
 dst_path = "static/humerus_t"
-src_ims = [os.path.join(img_path, i) for i in os.listdir(img_path)]
+src_ims = [os.path.join(img_path, i) for i in os.listdir(img_path) if i not in [_.split(".")[0].split(_)[0]+".png" for _ in os.listdir(dst_path)]]
 
 @app.route("/")
 def index():
@@ -50,13 +50,18 @@ def index():
     session['im_counter'] = -1
 
   session['im_counter'] += 1
-  img_path = src_ims[session['im_counter']]
+  img_path = ""
+  if len(src_ims) >= session['im_counter']:
+    img_path = src_ims[session['im_counter']]
+
   return render_template('index.html', img_path=img_path)
 
 @app.route("/getimg")
 def getimg():
   session['im_counter'] += 1
-  img_path = src_ims[session['im_counter']]
+  img_path = ""
+  if len(src_ims) >= session['im_counter']:
+    img_path = src_ims[session['im_counter']]
   return jsonify({"img": img_path})
 
 @app.route("/reset")
@@ -112,6 +117,11 @@ def getCoords():
   im_t = os.path.join(dst_path, "%s.png"%dicom)
   im.save(im_t)
   return jsonify({'status': 1, 'img': im_t})
+
+@app.route("/restart")
+def restart():
+  session.clear()
+  return "Done"
 
 if __name__ == "__main__":
   config = get_config('/home/anant/UNIT/configs/0801_humerus.yaml')

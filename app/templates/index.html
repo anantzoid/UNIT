@@ -161,7 +161,8 @@
 					<li>Drage cropper to select patch</li>
 					<li>Hit Enter to generate Bone Lesion</li>
 					<li>Hit Enter to fetch next image</li>
-					<li>Hit Esc to reset the image</li>
+					<li>Hit Esc to reset translated image</li>
+					<li>Hit Esc to skip untranslated image</li>
 				</ul>
 			</div>
 
@@ -223,6 +224,10 @@
               },
               success: function(response) {
                 console.log(response);      
+                if (response.img == "") {
+                  alert("You're done!");
+                  return;
+                }
                 //change image
                 $("#main-img").attr("src", response.img + '?' + (new Date()).getTime());
                 $(".loader-overlay").hide()  
