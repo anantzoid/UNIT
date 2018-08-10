@@ -224,7 +224,7 @@
               success: function(response) {
                 console.log(response);      
                 //change image
-                $("#main-img").attr("src", response.img);
+                $("#main-img").attr("src", response.img + '?' + (new Date()).getTime());
                 $(".loader-overlay").hide()  
                 status = 'on';
               },
@@ -236,6 +236,9 @@
       } else if (e.which == 27) {
         if(status == 'on') {
           fetchNextImage('/reset');
+        } else {
+          cropper.destroy()
+          fetchNextImage('/getimg');
         }
       }
     });

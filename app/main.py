@@ -62,6 +62,17 @@ def getimg():
 @app.route("/reset")
 def resetimg():
   img_path = src_ims[session['im_counter']]
+  dicom = os.path.split(src_ims[session['im_counter']])[-1].split(".")[0]
+  if session[dicom] > 0:
+    dicomid = "%s_%d"%(dicom, session[dicom])
+    session[dicom] -= 1
+  else:
+    del(session[dicom])
+    dicomid = dicom
+  im_t = os.path.join(dst_path, "%s.png"%dicomid)
+  os.remove(im_t)
+
+
   return jsonify({"img": img_path})
    
 @app.route("/coords")
@@ -90,8 +101,15 @@ def getCoords():
   im = np.clip(image_output_ * 255, 0, 255).astype('uint8')
   im = Image.fromarray(im)
 
-  dicom = os.path.split(src_ims[session['im_counter']])[-1]
-  im_t = os.path.join(dst_path, "%s.png"%(dicom))
+  dicom = os.path.split(src_ims[session['im_counter']])[-1].split(".")[0]
+
+  if dicom not in session:
+    session[dicom] = 0
+  else:
+    session[dicom] += 1
+    dicom = "%s_%d"%(dicom, session[dicom])
+ 
+  im_t = os.path.join(dst_path, "%s.png"%dicom)
   im.save(im_t)
   return jsonify({'status': 1, 'img': im_t})
 
